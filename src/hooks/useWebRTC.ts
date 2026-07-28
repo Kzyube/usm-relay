@@ -10,7 +10,7 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL ||
   (isLocalNetwork 
     ? `ws://${window.location.hostname}:8080` 
     : 'wss://dry-tundra-73460-088c768155ac.herokuapp.com');
-const CHUNK_SIZE = 64 * 1024; // 64 KB
+const CHUNK_SIZE = 256 * 1024; // 256 KB chunks for high speed
 
 export type ConnectionState = 'DISCONNECTED' | 'CONNECTING' | 'WAITING_FOR_PEER' | 'PEER_CONNECTED' | 'WAITING_TO_ACCEPT' | 'TRANSFERRING' | 'COMPLETE' | 'ERROR';
 
@@ -245,22 +245,7 @@ export function useWebRTC() {
     pc.current = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' },
-        {
-          urls: 'turn:openrelay.metered.ca:80',
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
-        }
+        { urls: 'stun:global.stun.twilio.com:3478' }
       ]
     });
 

@@ -10,7 +10,7 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL ||
   (isLocalNetwork 
     ? `ws://${window.location.hostname}:8080` 
     : 'wss://dry-tundra-73460-088c768155ac.herokuapp.com');
-const SEND_CHUNK_SIZE = 64 * 1024; // 64 KB is optimal for SCTP
+const SEND_CHUNK_SIZE = 16 * 1024; // 16 KB prevents SCTP fragmentation and UDP flooding
 const READ_BLOCK_SIZE = 2 * 1024 * 1024; // Read 2MB from disk at once
 
 export type ConnectionState = 'DISCONNECTED' | 'CONNECTING' | 'WAITING_FOR_PEER' | 'PEER_CONNECTED' | 'WAITING_TO_ACCEPT' | 'TRANSFERRING' | 'COMPLETE' | 'ERROR';
@@ -265,7 +265,7 @@ export function useWebRTC() {
   const setupDataChannel = (channel: RTCDataChannel) => {
     dataChannel.current = channel;
     channel.binaryType = 'arraybuffer';
-    channel.bufferedAmountLowThreshold = 256 * 1024; // 256 KB backpressure threshold
+    channel.bufferedAmountLowThreshold = 65536; // 64 KB backpressure threshold
 
     channel.onopen = () => {
       setConnectionState('PEER_CONNECTED');
@@ -490,26 +490,48 @@ export function useWebRTC() {
           if (isCancelled.current) throw new Error("CANCELLED");
           if (!dataChannel.current || dataChannel.current.readyState !== 'open') break;
           
-          if (dataChannel.current.bufferedAmount > 1024 * 1024) {
-            await new Promise<void>(resolve => {
-              if (!dataChannel.current) { resolve(); return; }
-              dataChannel.current.onbufferedamountlow = () => {
-                if (dataChannel.current) dataChannel.current.onbufferedamountlow = null;
-                resolve();
-              };
-            });
+          let chunkSent = false;
+          while (!chunkSent) {
+            if (isCancelled.current) throw new Error("CANCELLED");
+            if (!dataChannel.current || dataChannel.current.readyState !== 'open') break;
+
+            if (dataChannel.current.bufferedAmount > 256 * 1024) { // 256 KB high watermark
+              await new Promise<void>(resolve => {
+                if (!dataChannel.current) { resolve(); return; }
+                
+                // Safety timeout in case onbufferedamountlow never fires
+                const timeoutId = setTimeout(() => {
+                  if (dataChannel.current) dataChannel.current.onbufferedamountlow = null;
+                  resolve();
+                }, 100);
+
+                dataChannel.current.onbufferedamountlow = () => {
+                  clearTimeout(timeoutId);
+                  if (dataChannel.current) dataChannel.current.onbufferedamountlow = null;
+                  resolve();
+                };
+              });
+            }
+
+            try {
+              const chunkEnd = Math.min(blockOffset + SEND_CHUNK_SIZE, uint8Array.byteLength);
+              const chunk = uint8Array.subarray(blockOffset, chunkEnd);
+              
+              dataChannel.current.send(chunk);
+              chunkSent = true;
+              
+              blockOffset += chunk.byteLength;
+              currentOffset += chunk.byteLength;
+              bytesSinceLastCalc += chunk.byteLength;
+            } catch (err: any) {
+              if (err.name === 'QuotaExceededError' || err.name === 'OperationError') {
+                 // Device max buffer reached, wait 50ms and retry
+                 await new Promise(r => setTimeout(r, 50));
+              } else {
+                 throw err; // Other fatal errors
+              }
+            }
           }
-          
-          if (isCancelled.current) throw new Error("CANCELLED");
-          
-          const chunkEnd = Math.min(blockOffset + SEND_CHUNK_SIZE, uint8Array.byteLength);
-          const chunk = uint8Array.subarray(blockOffset, chunkEnd);
-          
-          dataChannel.current.send(chunk);
-          
-          blockOffset += chunk.byteLength;
-          currentOffset += chunk.byteLength;
-          bytesSinceLastCalc += chunk.byteLength;
           
           const now = Date.now();
           

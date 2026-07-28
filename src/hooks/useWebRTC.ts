@@ -37,6 +37,7 @@ export function useWebRTC() {
   const myPeerId = useRef<string | null>(null);
   const targetPeerId = useRef<string | null>(null);
   const roomIdRef = useRef<string | null>(null);
+  const isInitiator = useRef<boolean>(false);
 
   // Wrapper to keep both state and ref in sync
   const setRoomId = useCallback((id: string | null) => {
@@ -112,33 +113,32 @@ export function useWebRTC() {
             break;
 
           case 'ROOM_JOINED':
-            // We are the receiver
+            // We joined an existing room
             setRoomId(msg.payload.roomId);
             const otherPeers = msg.payload.peers.filter((p: string) => p !== myPeerId.current);
             roomIdRef.current = msg.payload.roomId;
             setRoomIdState(msg.payload.roomId);
             
-            // If we reconnected and the receiver is already here, initiate offer
-            if (msg.payload.peers && msg.payload.peers.length > 0) {
-              const otherPeer = msg.payload.peers.find((p: string) => p !== myPeerId.current);
-              if (otherPeer) {
-                targetPeerId.current = otherPeer;
-                if (pc.current) {
-                  const offer = await pc.current.createOffer();
-                  await pc.current.setLocalDescription(offer);
-                  sendWsMessage('OFFER', { sdp: pc.current.localDescription, targetPeerId: targetPeerId.current }, { roomId: roomIdRef.current });
-                }
+            // If we reconnected as the sender (initiator), and the receiver is here, initiate offer
+            if (isInitiator.current && otherPeers.length > 0) {
+              targetPeerId.current = otherPeers[0];
+              if (pc.current) {
+                const offer = await pc.current.createOffer();
+                await pc.current.setLocalDescription(offer);
+                sendWsMessage('OFFER', { sdp: pc.current.localDescription, targetPeerId: targetPeerId.current }, { roomId: roomIdRef.current });
               }
+            } else if (!isInitiator.current && otherPeers.length > 0) {
+              // We are the receiver, just set the target peer ID and wait for their offer
+              targetPeerId.current = otherPeers[0];
             }
             break;
 
           case 'PEER_JOINED':
-            // We are the sender
             targetPeerId.current = msg.payload.peerId;
             // Wait for data channel onopen to set PEER_CONNECTED
 
             // Initiator creates offer
-            if (pc.current && targetPeerId.current) {
+            if (isInitiator.current && pc.current && targetPeerId.current) {
               const offer = await pc.current.createOffer();
               await pc.current.setLocalDescription(offer);
               sendWsMessage('OFFER', { sdp: pc.current.localDescription, targetPeerId: targetPeerId.current }, { roomId: roomIdRef.current });
@@ -271,6 +271,7 @@ export function useWebRTC() {
   };
 
   const createRoom = useCallback(() => {
+    isInitiator.current = true;
     initWebRTC();
     initWebSocket(() => {
       dataChannel.current = pc.current!.createDataChannel('fileTransfer');
@@ -280,6 +281,7 @@ export function useWebRTC() {
   }, [initWebRTC, initWebSocket]);
 
   const joinRoom = useCallback((id: string) => {
+    isInitiator.current = false;
     setRoomId(id);
     initWebRTC();
     initWebSocket(() => {

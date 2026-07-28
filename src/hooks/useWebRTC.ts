@@ -86,7 +86,18 @@ export function useWebRTC() {
   };
 
   const initWebSocket = useCallback((onOpen: () => void) => {
-    if (ws.current) return;
+    if (ws.current) {
+      if (ws.current.readyState === WebSocket.OPEN) {
+        onOpen();
+      } else if (ws.current.readyState === WebSocket.CONNECTING) {
+        const existingOnOpen = ws.current.onopen;
+        ws.current.onopen = (ev) => {
+          if (existingOnOpen) existingOnOpen.call(ws.current, ev);
+          onOpen();
+        };
+      }
+      return;
+    }
 
     setConnectionState('CONNECTING');
     ws.current = new WebSocket(WS_URL);
@@ -380,6 +391,7 @@ export function useWebRTC() {
 
   const joinRoom = useCallback((id: string, password?: string) => {
     isInitiator.current = false;
+    setError(null);
     setRoomId(id);
     initWebRTC();
     initWebSocket(() => {

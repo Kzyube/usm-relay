@@ -5,6 +5,57 @@ import { motion } from 'framer-motion';
 import { XCircle, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import styles from './WhyRelay.module.css';
 
+const ArchitectureAnimation = () => {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', width: '100%', maxWidth: '800px', margin: '0 auto 4rem auto', padding: '2rem', background: '#0a0a0a', borderRadius: '24px', border: '1px solid #222' }}>
+      
+      {/* TRADITIONAL WAY */}
+      <div>
+        <h4 style={{ color: '#ff3366', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '1.5rem', textAlign: 'center', fontWeight: 800 }}>The Traditional Way</h4>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+          
+          <div style={{ zIndex: 2, padding: '1rem', background: '#111', border: '1px solid #333', borderRadius: '12px', color: 'white' }}>Your PC</div>
+          
+          <div style={{ position: 'absolute', top: '50%', left: '10%', right: '10%', height: '2px', background: '#333', zIndex: 1 }} />
+          
+          <motion.div 
+            style={{ zIndex: 3, width: '20px', height: '20px', background: '#ff3366', borderRadius: '50%', position: 'absolute', top: 'calc(50% - 10px)' }}
+            animate={{ left: ['10%', '50%', '50%', '90%'], opacity: [1, 1, 0.5, 1] }}
+            transition={{ duration: 4, ease: "easeInOut", repeat: Infinity, times: [0, 0.4, 0.6, 1] }}
+          />
+
+          <div style={{ zIndex: 2, padding: '1rem 2rem', background: '#222', border: '1px solid #ff3366', borderRadius: '12px', color: '#ff3366', fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span>Cloud Server</span>
+            <span style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '0.2rem' }}>(Storing & Scanning)</span>
+          </div>
+          
+          <div style={{ zIndex: 2, padding: '1rem', background: '#111', border: '1px solid #333', borderRadius: '12px', color: 'white' }}>Friend's PC</div>
+        </div>
+      </div>
+
+      {/* RELAY WAY */}
+      <div>
+        <h4 style={{ color: '#00ffa3', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '1.5rem', textAlign: 'center', fontWeight: 800 }}>The Relay Way</h4>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+          
+          <div style={{ zIndex: 2, padding: '1rem', background: '#111', border: '1px solid #00ffa3', borderRadius: '12px', color: 'white' }}>Your PC</div>
+          
+          <div style={{ position: 'absolute', top: '50%', left: '15%', right: '15%', height: '2px', background: '#111', zIndex: 1 }} />
+          
+          <motion.div 
+            style={{ position: 'absolute', top: 'calc(50% - 2px)', left: '15%', height: '4px', background: 'linear-gradient(90deg, transparent, #00ffa3)', zIndex: 3, transformOrigin: 'left' }}
+            animate={{ scaleX: [0, 1], opacity: [0, 1, 0] }}
+            transition={{ duration: 1.5, ease: "circIn", repeat: Infinity }}
+          />
+
+          <div style={{ zIndex: 2, padding: '1rem', background: '#111', border: '1px solid #00ffa3', borderRadius: '12px', color: 'white' }}>Friend's PC</div>
+        </div>
+      </div>
+
+    </div>
+  );
+};
+
 export default function WhyRelay() {
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -16,11 +67,12 @@ export default function WhyRelay() {
 
   const itemVariants = {
     hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
   };
 
   return (
     <section className={styles.section}>
+      <ArchitectureAnimation />
       <motion.div 
         className={styles.header}
         initial={{ opacity: 0, y: -20 }}

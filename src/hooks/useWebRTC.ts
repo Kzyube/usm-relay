@@ -10,7 +10,8 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL ||
   (isLocalNetwork 
     ? `ws://${window.location.hostname}:8080` 
     : 'wss://dry-tundra-73460-088c768155ac.herokuapp.com');
-const CHUNK_SIZE = 256 * 1024; // 256 KB chunks for high speed
+const SEND_CHUNK_SIZE = 64 * 1024; // 64 KB is optimal for SCTP
+const READ_BLOCK_SIZE = 4 * 1024 * 1024; // Read 4MB from disk at once
 
 export type ConnectionState = 'DISCONNECTED' | 'CONNECTING' | 'WAITING_FOR_PEER' | 'PEER_CONNECTED' | 'WAITING_TO_ACCEPT' | 'TRANSFERRING' | 'COMPLETE' | 'ERROR';
 
@@ -264,7 +265,7 @@ export function useWebRTC() {
   const setupDataChannel = (channel: RTCDataChannel) => {
     dataChannel.current = channel;
     channel.binaryType = 'arraybuffer';
-    channel.bufferedAmountLowThreshold = 4 * 1024 * 1024; // 4 MB backpressure threshold
+    channel.bufferedAmountLowThreshold = 8 * 1024 * 1024; // 8 MB backpressure threshold
 
     channel.onopen = () => {
       setConnectionState('PEER_CONNECTED');
@@ -476,48 +477,63 @@ export function useWebRTC() {
         if (isCancelled.current) throw new Error("CANCELLED");
         if (!dataChannel.current || dataChannel.current.readyState !== 'open') break;
         
-        if (dataChannel.current.bufferedAmount > 16 * 1024 * 1024) {
-          await new Promise<void>(resolve => {
-            if (!dataChannel.current) { resolve(); return; }
-            dataChannel.current.onbufferedamountlow = () => {
-              if (dataChannel.current) dataChannel.current.onbufferedamountlow = null;
-              resolve();
-            };
-          });
-        }
+        // Read a large block from disk
+        const sliceEnd = Math.min(currentOffset + READ_BLOCK_SIZE, file.size);
+        const blockSlice = file.slice(currentOffset, sliceEnd);
+        const arrayBuffer = await blockSlice.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
         
-        if (isCancelled.current) throw new Error("CANCELLED");
+        let blockOffset = 0;
+        
+        // Send block in smaller 64KB SCTP-friendly chunks
+        while (blockOffset < uint8Array.byteLength) {
+          if (isCancelled.current) throw new Error("CANCELLED");
+          if (!dataChannel.current || dataChannel.current.readyState !== 'open') break;
+          
+          if (dataChannel.current.bufferedAmount > 16 * 1024 * 1024) {
+            await new Promise<void>(resolve => {
+              if (!dataChannel.current) { resolve(); return; }
+              dataChannel.current.onbufferedamountlow = () => {
+                if (dataChannel.current) dataChannel.current.onbufferedamountlow = null;
+                resolve();
+              };
+            });
+          }
+          
+          if (isCancelled.current) throw new Error("CANCELLED");
+          
+          const chunkEnd = Math.min(blockOffset + SEND_CHUNK_SIZE, uint8Array.byteLength);
+          const chunk = uint8Array.subarray(blockOffset, chunkEnd);
+          
+          dataChannel.current.send(chunk);
+          
+          blockOffset += chunk.byteLength;
+          currentOffset += chunk.byteLength;
+          bytesSinceLastCalc += chunk.byteLength;
+          
+          const now = Date.now();
+          
+          if (now - lastSpeedCalcTime >= 500) {
+             const seconds = (now - lastSpeedCalcTime) / 1000;
+             const speedBps = bytesSinceLastCalc / seconds;
+             currentSpeed = (speedBps / (1024 * 1024)).toFixed(2);
+             const remainingBytes = file.size - currentOffset;
+             currentEta = speedBps > 0 ? Math.ceil(remainingBytes / speedBps) : 0;
+             
+             lastSpeedCalcTime = now;
+             bytesSinceLastCalc = 0;
+          }
 
-        const slice = file.slice(currentOffset, currentOffset + CHUNK_SIZE);
-        const buffer = await slice.arrayBuffer(); 
-        
-        if (!dataChannel.current || dataChannel.current.readyState !== 'open') break;
-        dataChannel.current.send(buffer);
-        currentOffset += buffer.byteLength;
-        bytesSinceLastCalc += buffer.byteLength;
-        
-        const now = Date.now();
-        
-        if (now - lastSpeedCalcTime >= 500) {
-           const seconds = (now - lastSpeedCalcTime) / 1000;
-           const speedBps = bytesSinceLastCalc / seconds;
-           currentSpeed = (speedBps / (1024 * 1024)).toFixed(2);
-           const remainingBytes = file.size - currentOffset;
-           currentEta = speedBps > 0 ? Math.ceil(remainingBytes / speedBps) : 0;
-           
-           lastSpeedCalcTime = now;
-           bytesSinceLastCalc = 0;
-        }
-
-        if (now - lastProgressUpdate > 100 || currentOffset >= file.size) {
-          const percent = Math.floor((currentOffset / file.size) * 100);
-          setProgress({ 
-            fileName: file.name, 
-            progress: percent,
-            speed: currentSpeed,
-            eta: currentEta
-          });
-          lastProgressUpdate = now;
+          if (now - lastProgressUpdate > 100 || currentOffset >= file.size) {
+            const percent = Math.floor((currentOffset / file.size) * 100);
+            setProgress({ 
+              fileName: file.name, 
+              progress: percent,
+              speed: currentSpeed,
+              eta: currentEta
+            });
+            lastProgressUpdate = now;
+          }
         }
       }
       

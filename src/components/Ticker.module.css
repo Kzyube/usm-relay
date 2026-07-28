@@ -1,0 +1,52 @@
+.tickerWrapper {
+  width: 100%;
+  overflow: hidden;
+  background: var(--text-primary);
+  color: var(--accent-primary);
+  padding: 1.5rem 0;
+  border-top: 4px solid var(--text-primary);
+  border-bottom: 4px solid var(--text-primary);
+  display: flex;
+  white-space: nowrap;
+  position: relative;
+  z-index: 20;
+}
+
+.tickerContent {
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  animation: scroll 20s linear infinite;
+}
+
+.tickerItem {
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.tickerItem::after {
+  content: '+++';
+  color: var(--surface-bg);
+}
+
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 768px) {
+  .tickerContent {
+    font-size: 1.25rem;
+  }
+  .tickerWrapper {
+    padding: 1rem 0;
+  }
+}

@@ -1,0 +1,206 @@
+.container {
+  padding: 10rem 2rem 6rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+.header {
+  margin-bottom: 4rem;
+  border-bottom: 4px solid var(--text-primary);
+  padding-bottom: 2rem;
+}
+
+.title {
+  font-size: clamp(4rem, 8vw, 6rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  line-height: 0.9;
+}
+
+.subtitle {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 600px;
+}
+
+.toggleContainer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 4rem;
+  background: var(--surface-bg);
+  border: 4px solid var(--text-primary);
+  padding: 1rem;
+  width: fit-content;
+  box-shadow: 8px 8px 0 var(--text-primary);
+}
+
+.toggleLabel {
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.toggleLabel.active {
+  color: var(--text-primary);
+}
+
+.toggle {
+  width: 64px;
+  height: 32px;
+  background: var(--text-primary);
+  position: relative;
+  cursor: pointer;
+}
+
+.toggleKnob {
+  width: 24px;
+  height: 24px;
+  background: var(--bg-color);
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  transition: transform 0.2s linear;
+}
+
+.toggleKnob.yearly {
+  transform: translateX(32px);
+  background: var(--accent-primary);
+}
+
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 4rem;
+  align-items: stretch;
+}
+
+.pricingCard {
+  background: var(--surface-bg);
+  border: 4px solid var(--text-primary);
+  padding: 2rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 16px 16px 0 var(--text-primary);
+  transition: transform 0.2s;
+}
+
+.pricingCard:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 20px 20px 0 var(--text-primary);
+}
+
+.pricingCard.featured {
+  background: var(--text-primary);
+  color: var(--bg-color);
+  box-shadow: 16px 16px 0 var(--accent-primary);
+}
+
+.featuredBadge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--accent-primary);
+  color: var(--surface-bg);
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 0.5rem 1rem;
+  text-transform: uppercase;
+}
+
+.tierName {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.tierDesc {
+  font-weight: 500;
+  font-size: 1rem;
+  margin-bottom: 2rem;
+  opacity: 0.8;
+}
+
+.price {
+  font-size: 5rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  line-height: 1;
+}
+
+.price span {
+  font-size: 1.5rem;
+  font-weight: 700;
+  opacity: 0.6;
+}
+
+.featuresList {
+  list-style: none;
+  margin-bottom: 3rem;
+  flex: 1;
+  border-top: 4px solid currentColor;
+  padding-top: 2rem;
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.featureIcon {
+  color: var(--accent-secondary);
+  flex-shrink: 0;
+}
+
+.featured .featureIcon {
+  color: var(--accent-primary);
+}
+
+.primaryBtn {
+  background: var(--text-primary);
+  color: var(--bg-color);
+  padding: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-align: center;
+  width: 100%;
+  border: 4px solid var(--text-primary);
+  transition: all 0.2s;
+}
+
+.primaryBtn:hover {
+  background: var(--accent-secondary);
+  color: var(--surface-bg);
+}
+
+.featuredBtn {
+  background: var(--accent-primary);
+  color: var(--surface-bg);
+  border-color: var(--accent-primary);
+}
+
+.featuredBtn:hover {
+  background: var(--surface-bg);
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .pricingGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,109 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: transparent;
+  pointer-events: none; /* Let clicks pass through empty space */
+}
+
+.logo {
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: -0.05em;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  pointer-events: auto;
+  border: 2px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  background: var(--surface-bg);
+  transition: all 0.2s;
+}
+
+.logo:hover {
+  background: var(--text-primary);
+  color: var(--bg-color);
+}
+
+.menuBtn {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  pointer-events: auto;
+  border: 2px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  background: var(--accent-primary);
+  color: var(--surface-bg);
+  transition: all 0.2s;
+}
+
+.menuBtn:hover {
+  background: var(--text-primary);
+  color: var(--bg-color);
+  transform: translate(4px, -4px);
+  box-shadow: -4px 4px 0 var(--border-color);
+}
+
+.menuBtn.isOpen {
+  background: var(--surface-bg);
+  color: var(--text-primary);
+  z-index: 200;
+}
+
+.fullscreenMenu {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-color);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 12px solid var(--text-primary);
+}
+
+.navLinks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.navLink {
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--text-primary);
+  transition: all 0.3s;
+  position: relative;
+}
+
+.navLink:hover, .navLink.active {
+  color: var(--text-primary);
+  -webkit-text-stroke: 0;
+}
+
+.navLink.active::after {
+  content: '→';
+  position: absolute;
+  left: -60px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent-primary);
+  font-size: clamp(1.5rem, 4vw, 3rem);
+}
+
+@media (max-width: 768px) {
+  .navLink.active::after {
+    left: -30px;
+    font-size: 1.5rem;
+  }
+}

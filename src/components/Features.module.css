@@ -1,0 +1,135 @@
+.section {
+  padding: 8rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 5rem;
+  border-bottom: 4px solid var(--text-primary);
+  padding-bottom: 2rem;
+}
+
+.title {
+  font-size: clamp(3rem, 6vw, 5rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  color: var(--text-primary);
+}
+
+.bentoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 160px;
+  gap: 1rem;
+}
+
+.card {
+  background: var(--surface-bg);
+  border: 3px solid var(--text-primary);
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 8px 8px 0 var(--text-primary);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.card:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 12px 12px 0 var(--accent-primary);
+}
+
+.large {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.tall {
+  grid-column: span 1;
+  grid-row: span 2;
+}
+
+.wide {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+.standard {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+
+.iconWrapper {
+  width: 48px;
+  height: 48px;
+  background: var(--text-primary);
+  color: var(--bg-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  margin-bottom: 1rem;
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.cardDesc {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.terminalCode {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent-secondary);
+  font-weight: 700;
+  white-space: pre-wrap;
+  text-align: right;
+  opacity: 0.8;
+}
+
+@media (max-width: 1024px) {
+  .bentoGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .large {
+    grid-column: span 2;
+  }
+  .tall, .wide, .standard {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+  .wide {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .bentoGrid {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+  }
+  .large, .tall, .wide, .standard {
+    grid-column: span 1;
+    grid-row: span 1;
+    min-height: 300px;
+  }
+  .terminalCode {
+    display: none;
+  }
+}

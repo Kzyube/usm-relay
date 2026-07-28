@@ -1,0 +1,184 @@
+.container {
+  padding: 10rem 2rem 6rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+.title {
+  font-size: clamp(4rem, 8vw, 6rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  margin-bottom: 2rem;
+  line-height: 1;
+}
+
+.lead {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 4rem;
+  border-left: 8px solid var(--accent-primary);
+  padding-left: 2rem;
+}
+
+.missionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 6rem;
+}
+
+.missionCard {
+  background: var(--surface-bg);
+  border: 4px solid var(--text-primary);
+  padding: 1.5rem;
+  box-shadow: 12px 12px 0 var(--text-primary);
+}
+
+.iconWrapper {
+  width: 64px;
+  height: 64px;
+  background: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  color: var(--bg-color);
+}
+
+.cardTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.cardDesc {
+  color: var(--text-secondary);
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.creatorSection {
+  margin-top: 6rem;
+  border-top: 4px solid var(--text-primary);
+  padding-top: 4rem;
+  display: flex;
+  justify-content: center;
+}
+
+.creatorCard {
+  border: 4px solid var(--text-primary);
+  padding: 4rem 2rem;
+  background: var(--surface-bg);
+  box-shadow: 16px 16px 0 var(--accent-tertiary);
+  text-align: center;
+  max-width: 800px;
+  width: 100%;
+}
+
+.avatar {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  border: 4px solid var(--text-primary);
+  background: var(--accent-primary);
+  margin: 0 auto 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--surface-bg);
+  font-size: 3rem;
+  font-weight: 800;
+  box-shadow: 8px 8px 0 var(--text-primary);
+}
+
+.creatorName {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.creatorRole {
+  color: var(--accent-secondary);
+  font-weight: 800;
+  font-size: 1.25rem;
+  text-transform: uppercase;
+  margin-bottom: 2rem;
+}
+
+.creatorBio {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto 3rem;
+}
+
+.socialLinks {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-bottom: 3rem;
+}
+
+.socialBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border: 3px solid var(--text-primary);
+  background: var(--surface-bg);
+  color: var(--text-primary);
+  font-weight: 800;
+  font-size: 1.125rem;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  box-shadow: 6px 6px 0 var(--text-primary);
+}
+
+.socialBtn:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 10px 10px 0 var(--accent-secondary);
+  background: var(--accent-secondary);
+  color: var(--surface-bg);
+  border-color: var(--accent-secondary);
+}
+
+.donateBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--accent-quaternary);
+  color: var(--surface-bg);
+  padding: 1.5rem 3rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  border: 4px solid var(--text-primary);
+  box-shadow: 8px 8px 0 var(--text-primary);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.donateBtn:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 12px 12px 0 var(--text-primary);
+}
+
+.donateBtn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .missionGrid {
+    grid-template-columns: 1fr;
+  }
+}

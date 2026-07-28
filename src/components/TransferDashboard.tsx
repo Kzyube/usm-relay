@@ -1,0 +1,243 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Link as LinkIcon, UploadCloud, ShieldCheck, Zap } from "lucide-react";
+import QRCode from "react-qr-code";
+import styles from './TransferDashboard.module.css';
+import { useWebRTC } from "../hooks/useWebRTC";
+
+type TransferState = "IDLE" | "FILE_PAIRED" | "TRANSFERRING" | "COMPLETE";
+
+export default function TransferDashboard() {
+  const [state, setState] = useState<TransferState>("IDLE");
+  const [files, setFiles] = useState<File[]>([]);
+  
+  const { 
+    connectionState, 
+    roomId, 
+    error, 
+    progress, 
+    createRoom, 
+    joinRoom, 
+    sendFile 
+  } = useWebRTC();
+
+  // Check URL for room code on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const roomParam = params.get('room');
+    if (roomParam && !roomId && connectionState === 'DISCONNECTED') {
+      joinRoom(roomParam);
+      // Wait for files to be pushed to us
+    }
+  }, [joinRoom, roomId, connectionState]);
+
+  // Update UI state based on WebRTC connection state
+  useEffect(() => {
+    if (connectionState === 'TRANSFERRING') {
+      setState("TRANSFERRING");
+    } else if (connectionState === 'COMPLETE') {
+      setState("COMPLETE");
+    }
+  }, [connectionState]);
+
+  // Trigger send immediately when peer connects if we are the sender
+  useEffect(() => {
+    if (connectionState === 'PEER_CONNECTED' && files.length > 0 && state === 'FILE_PAIRED') {
+      // Send first file for now (we can loop over files later for multiple)
+      sendFile(files[0]);
+    }
+  }, [connectionState, files, sendFile, state]);
+
+  const handleShareClick = () => {
+    if (!roomId) createRoom();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
+      setState("FILE_PAIRED");
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+      setState("FILE_PAIRED");
+    }
+  };
+
+  const removeFile = (indexToRemove: number) => {
+    setFiles(prev => {
+      const newFiles = prev.filter((_, idx) => idx !== indexToRemove);
+      if (newFiles.length === 0) {
+        setState("IDLE");
+      }
+      return newFiles;
+    });
+  };
+
+  const totalSizeMB = files.reduce((acc, f) => acc + f.size, 0) / 1048576;
+  const shareLink = roomId ? `${window.location.origin}/?room=${roomId}` : '';
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    alert("Link copied!");
+  };
+
+  // Automatically start transfer if files are selected, or we are just receiver.
+  return (
+    <div id="transfer-widget" className={styles.wrapper}>
+      {error && <div style={{ color: 'red', textAlign: 'center', marginBottom: '1rem' }}>Error: {error}</div>}
+      
+      <AnimatePresence mode="wait">
+        
+        {/* STATE 1: IDLE */}
+        {state === "IDLE" && connectionState !== 'WAITING_FOR_PEER' && connectionState !== 'PEER_CONNECTED' && (
+          <motion.div
+            key="idle"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.3 }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+          >
+            <input 
+              type="file" 
+              className="hidden" 
+              id="fileInput" 
+              style={{ display: 'none' }}
+              onChange={handleFileSelect} 
+            />
+            <label htmlFor="fileInput" className={styles.giantDropZone}>
+              <UploadCloud size={64} style={{ color: 'var(--accent-primary)', marginBottom: '1.5rem' }} />
+              <h2 className={styles.giantText}>Drop Files Here<br/>Or Click to Browse</h2>
+              <p className={styles.subText}>Fast, free, and secure peer-to-peer transfer.</p>
+              
+              <div style={{ display: 'flex', gap: '2rem', marginTop: '3rem', color: 'var(--text-secondary)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+                  <ShieldCheck size={18} color="var(--accent-secondary)" /> End-to-End Encrypted
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+                  <Zap size={18} color="#00ffa3" /> No File Size Limits
+                </div>
+              </div>
+            </label>
+          </motion.div>
+        )}
+
+        {/* STATE 2: PAIRED (Sender Waiting) */}
+        {state === "FILE_PAIRED" && connectionState !== 'TRANSFERRING' && (
+          <motion.div 
+            key="paired" 
+            initial={{ opacity: 0, y: 50 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -50 }} 
+            className={styles.pairedContainer}
+          >
+            <div>
+              <div className={styles.fileInfo}>{files.length} file{files.length !== 1 ? 's' : ''} ready</div>
+              <div className={styles.fileSize}>{totalSizeMB.toFixed(2)} MB total</div>
+            </div>
+
+            <div className={styles.fileList}>
+              {files.map((f, idx) => (
+                <div key={idx} className={styles.fileListItem}>
+                  <span className={styles.fileName}>{f.name}</span>
+                  <button onClick={() => removeFile(idx)} className={styles.removeBtn} aria-label="Remove file">
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            
+            {!roomId && (
+              <div style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: '2rem' }}>
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  id="addMoreFiles" 
+                  style={{ display: 'none' }}
+                  onChange={handleFileSelect} 
+                />
+                <label htmlFor="addMoreFiles" className={styles.secondaryBtn} style={{ flex: 1, cursor: 'pointer', textAlign: 'center' }}>
+                  ADD MORE
+                </label>
+                <button onClick={handleShareClick} className={styles.brutalBtn} style={{ flex: 2 }}>
+                  {connectionState === 'CONNECTING' ? 'CONNECTING...' : 'SHARE FILES'}
+                </button>
+              </div>
+            )}
+
+            {roomId && (
+              <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                <h3 style={{ color: '#aaa', marginBottom: '0.5rem' }}>Scan or Share Link to Receive</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                  Keep this tab open. The transfer happens directly between your devices.
+                </p>
+                <div style={{ background: 'white', padding: '1rem', display: 'inline-block', borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}>
+                  <QRCode value={shareLink} size={160} />
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'center' }}>
+                  <input 
+                    type="text" 
+                    readOnly 
+                    value={shareLink} 
+                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: 'rgba(255,255,255,0.1)', color: 'white', width: '250px' }}
+                  />
+                  <button onClick={copyLink} className={styles.secondaryBtn} style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <LinkIcon size={16} /> Copy
+                  </button>
+                </div>
+                <p style={{ marginTop: '1rem', color: '#00ffa3' }}>
+                  {connectionState === 'WAITING_FOR_PEER' ? 'Waiting for receiver to join...' : 'Connecting...'}
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* STATE 3: TRANSFERRING (Sender or Receiver) */}
+        {state === "TRANSFERRING" && (
+          <motion.div 
+            key="transferring" 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className={styles.pairedContainer}
+          >
+            <div className={styles.transferStatus}>
+              {progress?.fileName ? `TRANSFERRING: ${progress.fileName}` : 'STREAMING...'}
+            </div>
+            <div className={styles.progressBarContainer}>
+              <div className={styles.progressBar} style={{ width: `${progress?.progress || 0}%` }} />
+              <div className={styles.progressText}>{progress?.progress || 0}%</div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* STATE 4: COMPLETE */}
+        {state === "COMPLETE" && (
+          <motion.div 
+            key="complete" 
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            className={styles.pairedContainer}
+          >
+            <div className={styles.completeTitle}>DONE.</div>
+            <p style={{ color: '#aaa', marginBottom: '2rem' }}>
+              Transfer successful. File {files.length === 0 ? 'downloaded automatically' : 'sent'}.
+            </p>
+            <button onClick={() => { window.location.href = '/'; }} className={styles.resetBtn}>
+              AGAIN.
+            </button>
+          </motion.div>
+        )}
+        
+      </AnimatePresence>
+    </div>
+  );
+}

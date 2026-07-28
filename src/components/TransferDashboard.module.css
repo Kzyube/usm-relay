@@ -292,9 +292,10 @@
 
 @media (max-width: 600px) {
   .pairedContainer {
-    padding: 1.5rem;
-    box-shadow: 6px 6px 0 var(--accent-primary);
+    padding: 1rem;
+    box-shadow: 4px 4px 0 var(--accent-primary);
     border-width: 2px;
+    gap: 1rem;
   }
   .giantText {
     font-size: 1.5rem;
@@ -302,9 +303,16 @@
   .subText {
     font-size: 0.8rem;
   }
-  .brutalBtn, .secondaryBtn {
-    padding: 1rem;
-    font-size: 1rem;
-    box-shadow: 4px 4px 0 var(--text-primary);
+  .brutalBtn, .secondaryBtn, .resetBtn {
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+    border-width: 2px;
+    box-shadow: 3px 3px 0 var(--text-primary);
+  }
+  .transferStatus {
+    font-size: 1.2rem;
+  }
+  .completeTitle {
+    font-size: 2.5rem;
   }
 }

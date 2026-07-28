@@ -201,7 +201,32 @@
   }
 }
 @media (max-width: 768px) {
+  .section {
+    padding: 4rem 5%;
+  }
+  .legacyCard, .relayCard {
+    padding: 1.5rem;
+    box-shadow: 6px 6px 0 var(--text-primary);
+    border-width: 2px;
+  }
+  .legacyCard {
+    box-shadow: 6px 6px 0 var(--text-secondary);
+  }
+  .relayCard {
+    box-shadow: 6px 6px 0 var(--accent-primary);
+  }
   .noCatchBox {
-    padding: 2rem;
+    padding: 2rem 1.5rem;
+    box-shadow: 8px 8px 0 var(--text-primary);
+    border-width: 2px;
+  }
+  .noCatchDesc {
+    font-size: 1.1rem;
+  }
+  .cardHeader h3 {
+    font-size: 1.25rem;
+  }
+  .list li {
+    font-size: 1rem;
   }
 }

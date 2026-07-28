@@ -12,6 +12,7 @@ type TransferState = "IDLE" | "FILE_PAIRED" | "TRANSFERRING" | "COMPLETE";
 export default function TransferDashboard() {
   const [state, setState] = useState<TransferState>("IDLE");
   const [files, setFiles] = useState<File[]>([]);
+  const [currentFileIndex, setCurrentFileIndex] = useState(0);
   
   const { 
     connectionState, 
@@ -40,17 +41,36 @@ export default function TransferDashboard() {
     if (connectionState === 'TRANSFERRING') {
       setState("TRANSFERRING");
     } else if (connectionState === 'COMPLETE') {
-      setState("COMPLETE");
+      // If we are sender and have more files, do NOT set COMPLETE state yet
+      if (files.length > 0 && currentFileIndex < files.length - 1) {
+        // Do nothing, let the other effect trigger the next file
+      } else {
+        setState("COMPLETE");
+      }
     }
-  }, [connectionState]);
+  }, [connectionState, files.length, currentFileIndex]);
 
   // Trigger send immediately when peer connects if we are the sender
   useEffect(() => {
     if (connectionState === 'PEER_CONNECTED' && files.length > 0 && state === 'FILE_PAIRED') {
-      // Send first file for now (we can loop over files later for multiple)
+      setCurrentFileIndex(0);
       sendFile(files[0]);
     }
   }, [connectionState, files, sendFile, state]);
+
+  // Handle multi-file queueing
+  useEffect(() => {
+    if (connectionState === 'COMPLETE' && state === 'TRANSFERRING' && files.length > 0) {
+      if (currentFileIndex < files.length - 1) {
+        const nextIdx = currentFileIndex + 1;
+        setCurrentFileIndex(nextIdx);
+        // Small delay to ensure receiver has processed the previous file completion
+        setTimeout(() => {
+          sendFile(files[nextIdx]);
+        }, 500);
+      }
+    }
+  }, [connectionState, state, currentFileIndex, files, sendFile]);
 
   const handleShareClick = () => {
     if (!roomId) createRoom();
@@ -92,7 +112,13 @@ export default function TransferDashboard() {
   // Automatically start transfer if files are selected, or we are just receiver.
   return (
     <div id="transfer-widget" className={styles.wrapper}>
-      {error && <div style={{ color: 'red', textAlign: 'center', marginBottom: '1rem' }}>Error: {error}</div>}
+      {error && (
+        <div style={{ background: '#ff336622', border: '1px solid #ff3366', color: '#ff3366', padding: '1rem', borderRadius: '8px', textAlign: 'center', marginBottom: '1rem', fontWeight: 600 }}>
+          {error.includes("Room is full, closed, or does not exist") 
+            ? "Room expired or sender is offline. Please ask for a new link!" 
+            : error}
+        </div>
+      )}
       
       <AnimatePresence mode="wait">
         
@@ -199,8 +225,8 @@ export default function TransferDashboard() {
             {roomId && (
               <div style={{ marginTop: '2rem', textAlign: 'center' }}>
                 <h3 style={{ color: '#aaa', marginBottom: '0.5rem' }}>Scan or Share Link to Receive</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-                  Keep this tab open. The transfer happens directly between your devices.
+                <p style={{ color: '#ff3366', fontWeight: 700, fontSize: '0.9rem', marginBottom: '1.5rem', textTransform: 'uppercase' }}>
+                  ⚠️ DO NOT CLOSE THIS TAB UNTIL FINISHED!
                 </p>
                 <div style={{ background: 'white', padding: '1rem', display: 'inline-block', borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}>
                   <QRCode value={shareLink} size={160} />
@@ -235,6 +261,11 @@ export default function TransferDashboard() {
           >
             <div className={styles.transferStatus}>
               {progress?.fileName ? `TRANSFERRING: ${progress.fileName}` : 'STREAMING...'}
+              {files.length > 1 && (
+                <div style={{ fontSize: '0.8rem', color: '#aaa', marginTop: '0.5rem' }}>
+                  File {currentFileIndex + 1} of {files.length}
+                </div>
+              )}
             </div>
             <div className={styles.progressBarContainer}>
               <div className={styles.progressBar} style={{ width: `${progress?.progress || 0}%` }} />
@@ -253,7 +284,7 @@ export default function TransferDashboard() {
           >
             <div className={styles.completeTitle}>DONE.</div>
             <p style={{ color: '#aaa', marginBottom: '2rem' }}>
-              Transfer successful. File {files.length === 0 ? 'downloaded automatically' : 'sent'}.
+              Transfer successful. {files.length > 0 ? `${files.length} file(s) sent.` : 'Files downloaded automatically.'}
             </p>
             <button onClick={() => { window.location.href = '/'; }} className={styles.resetBtn}>
               AGAIN.

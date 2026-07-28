@@ -77,8 +77,24 @@ export function useWebRTC() {
 
     ws.current.onerror = (error) => {
       console.error("WebSocket error:", error);
-      setError("WebSocket connection failed. If you are on an iPhone/iOS, make sure Local Network Access is allowed in Settings, or try using the public internet link instead of a local IP.");
-      setConnectionState('ERROR');
+      // On iOS, backgrounding the app throws an error and closes WS. We will rely on onclose to reconnect.
+    };
+
+    ws.current.onclose = () => {
+      setConnectionState('DISCONNECTED');
+      // If we had a room, try to reconnect after a short delay
+      if (roomIdRef.current) {
+        setTimeout(() => {
+          if (connectionState !== 'CONNECTING' && connectionState !== 'PEER_CONNECTED') {
+            initWebSocket(() => {
+              // Try to rejoin our existing room
+              if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+                ws.current.send(JSON.stringify({ type: 'JOIN_ROOM', payload: { roomId: roomIdRef.current } }));
+              }
+            });
+          }
+        }, 2000);
+      }
     };
 
     ws.current.onmessage = async (event) => {
@@ -99,10 +115,21 @@ export function useWebRTC() {
             // We are the receiver
             setRoomId(msg.payload.roomId);
             const otherPeers = msg.payload.peers.filter((p: string) => p !== myPeerId.current);
-            if (otherPeers.length > 0) {
-              targetPeerId.current = otherPeers[0];
+            roomIdRef.current = msg.payload.roomId;
+            setRoomIdState(msg.payload.roomId);
+            
+            // If we reconnected and the receiver is already here, initiate offer
+            if (msg.payload.peers && msg.payload.peers.length > 0) {
+              const otherPeer = msg.payload.peers.find((p: string) => p !== myPeerId.current);
+              if (otherPeer) {
+                targetPeerId.current = otherPeer;
+                if (pc.current) {
+                  const offer = await pc.current.createOffer();
+                  await pc.current.setLocalDescription(offer);
+                  sendWsMessage('OFFER', { sdp: pc.current.localDescription, targetPeerId: targetPeerId.current }, { roomId: roomIdRef.current });
+                }
+              }
             }
-            // Wait for data channel onopen to set PEER_CONNECTED
             break;
 
           case 'PEER_JOINED':

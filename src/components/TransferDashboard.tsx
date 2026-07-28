@@ -13,6 +13,7 @@ export default function TransferDashboard() {
   const [state, setState] = useState<TransferState>("IDLE");
   const [files, setFiles] = useState<File[]>([]);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
+  const [inAppBrowser, setInAppBrowser] = useState(false);
   
   const [password, setPassword] = useState("");
   const [selfDestruct, setSelfDestruct] = useState(false);
@@ -35,9 +36,15 @@ export default function TransferDashboard() {
   const completeAudio = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && "Notification" in window) {
-      if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-        Notification.requestPermission();
+    if (typeof window !== 'undefined') {
+      const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
+      const isInApp = /FBAV|FBAN|Instagram|Line|MicroMessenger|Snapchat|TikTok|Viber/i.test(ua);
+      setInAppBrowser(isInApp);
+      
+      if ("Notification" in window) {
+        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+          Notification.requestPermission();
+        }
       }
     }
     completeAudio.current = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3'); // Smooth ding
@@ -45,11 +52,12 @@ export default function TransferDashboard() {
 
   // Check URL for room code on mount
   useEffect(() => {
+    if (inAppBrowser) return;
     if (roomParam && !roomId && connectionState === 'DISCONNECTED') {
       joinRoom(roomParam);
       // Wait for files to be pushed to us
     }
-  }, [joinRoom, roomId, connectionState]);
+  }, [joinRoom, roomId, connectionState, roomParam, inAppBrowser]);
 
   // Update UI state based on WebRTC connection state
   useEffect(() => {
@@ -134,6 +142,35 @@ export default function TransferDashboard() {
     navigator.clipboard.writeText(shareLink);
     alert("Link copied!");
   };
+
+  if (inAppBrowser) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', padding: '2rem' }}>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={styles.pairedContainer}
+          style={{ textAlign: 'center', padding: '3rem', maxWidth: '600px', width: '100%' }}
+        >
+          <div style={{ background: '#ff3366', color: 'white', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+            <X size={32} />
+          </div>
+          <h2 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '1rem', color: 'var(--accent-primary)', lineHeight: 1.1 }}>
+            Works best in system browser!
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginBottom: '2rem', lineHeight: 1.5 }}>
+            You opened this link in an in-app browser (like Messenger or Instagram). These apps strictly block the advanced peer-to-peer technologies required for transferring large files.
+          </p>
+          <div style={{ background: 'var(--bg-color)', border: '2px solid var(--text-primary)', borderRadius: '12px', padding: '1.5rem' }}>
+            <p style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>How to fix this instantly:</p>
+            <p style={{ color: 'var(--text-secondary)' }}>
+              Tap the menu button <strong style={{color: 'var(--text-primary)'}}>(•••)</strong> in the top corner of your screen, and select <strong style={{color: 'var(--accent-secondary)'}}>"Open in Chrome / Safari"</strong> or <strong>"Open in system browser"</strong>.
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   // Automatically start transfer if files are selected, or we are just receiver.
   return (

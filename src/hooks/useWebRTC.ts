@@ -208,7 +208,22 @@ export function useWebRTC() {
     pc.current = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' }
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        {
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        }
       ]
     });
 
@@ -227,7 +242,7 @@ export function useWebRTC() {
   const setupDataChannel = (channel: RTCDataChannel) => {
     dataChannel.current = channel;
     channel.binaryType = 'arraybuffer';
-    channel.bufferedAmountLowThreshold = 65536; // 64 KB
+    channel.bufferedAmountLowThreshold = 1024 * 1024; // 1 MB backpressure threshold
 
     channel.onopen = () => {
       setConnectionState('PEER_CONNECTED');
@@ -307,39 +322,47 @@ export function useWebRTC() {
     // Send metadata first
     dataChannel.current.send(JSON.stringify(metadata));
 
-    let offset = 0;
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      if (!e.target?.result || !dataChannel.current) return;
-
-      dataChannel.current.send(e.target.result as ArrayBuffer);
-      offset += (e.target.result as ArrayBuffer).byteLength;
-
-      const percent = Math.floor((offset / file.size) * 100);
-      setProgress({ fileName: file.name, progress: percent });
-
-      if (offset < file.size) {
-        if (dataChannel.current.bufferedAmount > dataChannel.current.bufferedAmountLowThreshold) {
-          dataChannel.current.onbufferedamountlow = () => {
-            dataChannel.current!.onbufferedamountlow = null;
-            readSlice(offset);
-          };
-        } else {
-          readSlice(offset);
+    try {
+      let offset = 0;
+      let lastProgressUpdate = 0;
+      
+      while (offset < file.size) {
+        if (!dataChannel.current || dataChannel.current.readyState !== 'open') break;
+        
+        // Robust Backpressure: pause pushing if WebRTC internal buffer exceeds 2MB
+        if (dataChannel.current.bufferedAmount > 2 * 1024 * 1024) {
+          await new Promise<void>(resolve => {
+            if (!dataChannel.current) { resolve(); return; }
+            dataChannel.current.onbufferedamountlow = () => {
+              if (dataChannel.current) dataChannel.current.onbufferedamountlow = null;
+              resolve();
+            };
+          });
         }
-      } else {
+        
+        const slice = file.slice(offset, offset + CHUNK_SIZE);
+        const buffer = await slice.arrayBuffer(); // Modern, non-blocking disk read
+        
+        if (!dataChannel.current || dataChannel.current.readyState !== 'open') break;
+        dataChannel.current.send(buffer);
+        offset += buffer.byteLength;
+        
+        // UI throttling: only update React state every 100ms or at completion to prevent render lag
+        const now = Date.now();
+        if (now - lastProgressUpdate > 100 || offset >= file.size) {
+          const percent = Math.floor((offset / file.size) * 100);
+          setProgress({ fileName: file.name, progress: percent });
+          lastProgressUpdate = now;
+        }
+      }
+      
+      if (offset >= file.size) {
         setConnectionState('COMPLETE');
       }
-    };
-
-    const readSlice = (o: number) => {
-      const slice = file.slice(o, o + CHUNK_SIZE);
-      reader.readAsArrayBuffer(slice);
-    };
-
-    readSlice(0);
-
+    } catch (err) {
+      console.error("Transfer error:", err);
+      setError("File transfer failed");
+    }
   }, []);
 
   // Update onicecandidate if targetPeerId changes

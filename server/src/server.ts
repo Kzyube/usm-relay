@@ -71,7 +71,12 @@ wss.on('connection', (socket, request) => {
           break;
 
         case 'CREATE_ROOM': {
-          const room = roomManager.createRoom(peer.peerId, parsed.payload?.maxPeers);
+          const room = roomManager.createRoom(
+            peer.peerId, 
+            parsed.payload?.maxPeers, 
+            parsed.payload?.password, 
+            parsed.payload?.selfDestruct
+          );
           peerManager.assignRoom(peer.peerId, room.roomId);
           sendMessage(socket, 'ROOM_CREATED', { roomId: room.roomId, peerId: peer.peerId }, parsed.requestId);
           break;
@@ -79,28 +84,30 @@ wss.on('connection', (socket, request) => {
 
         case 'JOIN_ROOM': {
           const roomId = parsed.payload.roomId;
-          const room = roomManager.joinRoom(roomId, peer.peerId);
-          if (!room) {
-            sendError(socket, 'ROOM_NOT_FOUND', 'Room is full, closed, or does not exist.', parsed.requestId);
-            break;
-          }
-          peerManager.assignRoom(peer.peerId, roomId);
-          
-          // Tell the joiner who is in the room
-          sendMessage(socket, 'ROOM_JOINED', { 
-            roomId, 
-            peerId: peer.peerId, 
-            peers: Array.from(room.peers) 
-          }, parsed.requestId);
+          try {
+            const room = roomManager.joinRoom(roomId, peer.peerId, parsed.payload?.password);
+            peerManager.assignRoom(peer.peerId, roomId);
+            
+            // Tell the joiner who is in the room
+            sendMessage(socket, 'ROOM_JOINED', { 
+              roomId, 
+              peerId: peer.peerId, 
+              peers: Array.from(room.peers) 
+            }, parsed.requestId);
 
-          // Notify others in the room
-          for (const otherPeerId of room.peers) {
-            if (otherPeerId !== peer.peerId) {
-              const otherPeer = peerManager.getPeer(otherPeerId);
-              if (otherPeer) {
-                sendMessage(otherPeer.socket, 'PEER_JOINED', { peerId: peer.peerId });
+            // Notify others in the room
+            for (const otherPeerId of room.peers) {
+              if (otherPeerId !== peer.peerId) {
+                const otherPeer = peerManager.getPeer(otherPeerId);
+                if (otherPeer) {
+                  sendMessage(otherPeer.socket, 'PEER_JOINED', { peerId: peer.peerId });
+                }
               }
             }
+          } catch (err: any) {
+            let errorMsg = 'Room is full, closed, or does not exist.';
+            if (err.message === 'INVALID_PASSWORD') errorMsg = 'Invalid password.';
+            sendError(socket, err.message || 'ROOM_NOT_FOUND', errorMsg, parsed.requestId);
           }
           break;
         }
@@ -145,6 +152,16 @@ wss.on('connection', (socket, request) => {
 
           // Relay the message exactly as it came, just swapping the senderId
           sendMessage(targetPeer.socket, parsed.type as 'OFFER' | 'ANSWER' | 'ICE_CANDIDATE', parsed.payload, parsed.requestId);
+          break;
+        }
+        
+        case 'TRANSFER_COMPLETE': {
+          if (!peer.roomId) break;
+          const room = roomManager.getRoom(peer.roomId);
+          if (room && room.selfDestruct) {
+             roomManager.destroyRoom(peer.roomId);
+             logger.info({ roomId: peer.roomId }, 'Room self-destructed upon transfer completion.');
+          }
           break;
         }
       }

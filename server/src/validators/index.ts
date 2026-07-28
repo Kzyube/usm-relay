@@ -15,6 +15,8 @@ export const createRoomSchema = baseMessageSchema.extend({
   type: z.literal('CREATE_ROOM'),
   payload: z.object({
     maxPeers: z.number().int().min(2).max(10).optional().default(config.MAX_ROOM_SIZE),
+    password: z.string().optional(),
+    selfDestruct: z.boolean().optional(),
   }).optional(),
 });
 
@@ -23,6 +25,7 @@ export const joinRoomSchema = baseMessageSchema.extend({
   type: z.literal('JOIN_ROOM'),
   payload: z.object({
     roomId: z.string().min(1).max(20),
+    password: z.string().optional(),
   }),
 });
 
@@ -68,6 +71,10 @@ export const leaveRoomSchema = baseMessageSchema.extend({
   type: z.literal('LEAVE_ROOM'),
 });
 
+export const transferCompleteSchema = baseMessageSchema.extend({
+  type: z.literal('TRANSFER_COMPLETE'),
+});
+
 // Master parser that routes to the correct schema
 export function parseIncomingMessage(rawStr: string) {
   // 1. Initial JSON parse check
@@ -100,6 +107,8 @@ export function parseIncomingMessage(rawStr: string) {
       return pongSchema.parse(rawJson);
     case 'LEAVE_ROOM':
       return leaveRoomSchema.parse(rawJson);
+    case 'TRANSFER_COMPLETE':
+      return transferCompleteSchema.parse(rawJson);
     default:
       throw new Error(`Unsupported message type: ${base.data.type}`);
   }

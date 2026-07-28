@@ -36,6 +36,8 @@ export interface Room {
   lastActivity: number;
   maxPeers: number;
   expiresAt: number;
+  password?: string;
+  selfDestruct?: boolean;
 }
 
 // ─────────────────────────────────────────────
@@ -98,10 +100,13 @@ export interface ServerMessage<T = unknown> extends BaseMessage {
 
 export interface CreateRoomPayload {
   maxPeers?: number;
+  password?: string;
+  selfDestruct?: boolean;
 }
 
 export interface JoinRoomPayload {
   roomId: string;
+  password?: string;
 }
 
 export interface SDPPayload {
@@ -158,6 +163,7 @@ export const ErrorCode = {
   PEER_NOT_FOUND: 'PEER_NOT_FOUND',
   INVALID_MESSAGE: 'INVALID_MESSAGE',
   INVALID_PAYLOAD: 'INVALID_PAYLOAD',
+  INVALID_PASSWORD: 'INVALID_PASSWORD',
   RATE_LIMITED: 'RATE_LIMITED',
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   NOT_IN_ROOM: 'NOT_IN_ROOM',

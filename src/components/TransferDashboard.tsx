@@ -14,6 +14,10 @@ export default function TransferDashboard() {
   const [files, setFiles] = useState<File[]>([]);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
   
+  const [password, setPassword] = useState("");
+  const [selfDestruct, setSelfDestruct] = useState(false);
+  const [receiverPassword, setReceiverPassword] = useState("");
+  
   const { 
     connectionState, 
     roomId, 
@@ -95,7 +99,7 @@ export default function TransferDashboard() {
   }, [connectionState, state, currentFileIndex, files, sendFile]);
 
   const handleShareClick = () => {
-    if (!roomId) createRoom();
+    if (!roomId) createRoom(password || undefined, selfDestruct);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -134,7 +138,7 @@ export default function TransferDashboard() {
   // Automatically start transfer if files are selected, or we are just receiver.
   return (
     <div id="transfer-widget" className={styles.wrapper}>
-      {error && (
+      {error && error !== "Invalid password." && (
         <div style={{ background: '#ff336622', border: '1px solid #ff3366', color: '#ff3366', padding: '1rem', borderRadius: '8px', textAlign: 'center', marginBottom: '1rem', fontWeight: 600 }}>
           {error.includes("Room is full, closed, or does not exist") 
             ? "Room expired or sender is offline. Please ask for a new link!" 
@@ -180,7 +184,7 @@ export default function TransferDashboard() {
         )}
 
         {/* RECEIVER LOADING STATE */}
-        {state === "IDLE" && roomParam && connectionState !== 'WAITING_FOR_PEER' && connectionState !== 'PEER_CONNECTED' && (
+        {state === "IDLE" && roomParam && connectionState !== 'WAITING_FOR_PEER' && connectionState !== 'PEER_CONNECTED' && error !== "Invalid password." && (
           <motion.div
             key="loading"
             initial={{ opacity: 0 }}
@@ -222,6 +226,35 @@ export default function TransferDashboard() {
           </motion.div>
         )}
 
+        {/* RECEIVER PASSWORD PROMPT */}
+        {error === "Invalid password." && (
+          <motion.div
+            key="password_prompt"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className={styles.pairedContainer}
+            style={{ textAlign: 'center' }}
+          >
+            <ShieldCheck size={48} color="#ff3366" style={{ margin: '0 auto 1rem' }} />
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Protected Room</h2>
+            <p style={{ color: '#aaa', marginBottom: '1.5rem' }}>This room requires a password to join.</p>
+            <input 
+              type="password" 
+              placeholder="Enter Password"
+              value={receiverPassword}
+              onChange={e => setReceiverPassword(e.target.value)}
+              style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid #333', background: '#111', color: 'white', marginBottom: '1rem' }}
+            />
+            <button 
+              onClick={() => { joinRoom(roomParam!, receiverPassword); }}
+              className={styles.brutalBtn} 
+              style={{ width: '100%' }}
+            >
+              JOIN SECURELY
+            </button>
+          </motion.div>
+        )}
+
         {/* STATE 2: PAIRED (Sender Waiting) */}
         {state === "FILE_PAIRED" && connectionState !== 'TRANSFERRING' && (
           <motion.div 
@@ -247,6 +280,32 @@ export default function TransferDashboard() {
               ))}
             </div>
             
+            {!roomId && (
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '12px', marginTop: '2rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <h3 style={{ fontSize: '0.9rem', color: '#aaa', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ShieldCheck size={16} /> Security Options
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <input 
+                    type="password" 
+                    placeholder="Optional Password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    style={{ padding: '0.8rem 1rem', borderRadius: '6px', border: '1px solid #333', background: '#000', color: 'white', width: '100%' }}
+                  />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ccc', cursor: 'pointer', fontSize: '0.9rem' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={selfDestruct} 
+                      onChange={e => setSelfDestruct(e.target.checked)}
+                      style={{ width: '18px', height: '18px', accentColor: '#ff3366' }}
+                    />
+                    Self-Destruct room when finished
+                  </label>
+                </div>
+              </div>
+            )}
+
             {!roomId && (
               <div style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: '2rem' }}>
                 <input 

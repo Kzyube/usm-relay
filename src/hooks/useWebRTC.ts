@@ -349,6 +349,7 @@ export function useWebRTC() {
           if (receivedSize.current === expectedFile.current.size) {
              setConnectionState('COMPLETE');
              downloadFile(receiveBuffer.current, expectedFile.current);
+             sendWsMessage('TRANSFER_COMPLETE');
           }
         }
       }
@@ -367,22 +368,22 @@ export function useWebRTC() {
     URL.revokeObjectURL(url);
   };
 
-  const createRoom = useCallback(() => {
+  const createRoom = useCallback((password?: string, selfDestruct?: boolean) => {
     isInitiator.current = true;
     initWebRTC();
     initWebSocket(() => {
       dataChannel.current = pc.current!.createDataChannel('fileTransfer');
       setupDataChannel(dataChannel.current);
-      sendWsMessage('CREATE_ROOM', {});
+      sendWsMessage('CREATE_ROOM', { password, selfDestruct });
     });
   }, [initWebRTC, initWebSocket]);
 
-  const joinRoom = useCallback((id: string) => {
+  const joinRoom = useCallback((id: string, password?: string) => {
     isInitiator.current = false;
     setRoomId(id);
     initWebRTC();
     initWebSocket(() => {
-      sendWsMessage('JOIN_ROOM', { roomId: id });
+      sendWsMessage('JOIN_ROOM', { roomId: id, password });
     });
   }, [initWebRTC, initWebSocket]);
 
@@ -487,6 +488,7 @@ export function useWebRTC() {
       
       if (currentOffset >= file.size && !isCancelled.current) {
         setConnectionState('COMPLETE');
+        sendWsMessage('TRANSFER_COMPLETE');
       }
     } catch (err: any) {
       if (err.message === "CANCELLED") {

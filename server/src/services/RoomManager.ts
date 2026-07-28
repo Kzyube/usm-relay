@@ -14,7 +14,7 @@ export class RoomManager {
   }
 
   /** Create a new room and assign the creator as owner. */
-  public createRoom(ownerId: string, maxPeers = config.MAX_ROOM_SIZE): Room {
+  public createRoom(ownerId: string, maxPeers = config.MAX_ROOM_SIZE, password?: string, selfDestruct?: boolean): Room {
     const room: Room = {
       roomId: uuidv4().substring(0, 8).toUpperCase(), // Short, readable room code
       ownerId,
@@ -24,6 +24,8 @@ export class RoomManager {
       lastActivity: Date.now(),
       maxPeers,
       expiresAt: Date.now() + config.ROOM_TIMEOUT_MS,
+      password,
+      selfDestruct,
     };
     this.rooms.set(room.roomId, room);
     this.totalRoomsCreated++;
@@ -31,20 +33,24 @@ export class RoomManager {
     return room;
   }
 
-  /** Add a peer to an existing room. Returns null if the room is full or not found. */
-  public joinRoom(roomId: string, peerId: string): Room | null {
+  /** Add a peer to an existing room. Throws Error on failure. */
+  public joinRoom(roomId: string, peerId: string, password?: string): Room {
     const room = this.rooms.get(roomId);
     if (!room) {
       logger.warn({ roomId, peerId }, 'Join failed: room not found');
-      return null;
+      throw new Error('ROOM_NOT_FOUND');
     }
     if (room.peers.size >= room.maxPeers) {
       logger.warn({ roomId, peerId }, 'Join failed: room full');
-      return null;
+      throw new Error('ROOM_FULL');
     }
     if (room.status === 'CLOSED') {
       logger.warn({ roomId, peerId }, 'Join failed: room closed');
-      return null;
+      throw new Error('ROOM_CLOSED');
+    }
+    if (room.password && room.password !== password) {
+      logger.warn({ roomId, peerId }, 'Join failed: invalid password');
+      throw new Error('INVALID_PASSWORD');
     }
     room.peers.add(peerId);
     room.lastActivity = Date.now();

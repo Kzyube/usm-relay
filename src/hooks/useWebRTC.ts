@@ -75,6 +75,12 @@ export function useWebRTC() {
       onOpen();
     };
 
+    ws.current.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      setError("WebSocket connection failed. If you are on an iPhone/iOS, make sure Local Network Access is allowed in Settings, or try using the public internet link instead of a local IP.");
+      setConnectionState('ERROR');
+    };
+
     ws.current.onmessage = async (event) => {
       try {
         const msg = JSON.parse(event.data);

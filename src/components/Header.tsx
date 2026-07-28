@@ -43,8 +43,8 @@ export default function Header() {
               <Link href="/about" className={`${styles.navLink} ${isActive('/about') ? styles.active : ''}`} onClick={() => setMenuOpen(false)}>
                 PHILOSOPHY
               </Link>
-              <Link href="/pricing" className={`${styles.navLink} ${isActive('/pricing') ? styles.active : ''}`} onClick={() => setMenuOpen(false)}>
-                PRICING
+              <Link href="/donate" className={`${styles.navLink} ${isActive('/donate') ? styles.active : ''}`} onClick={() => setMenuOpen(false)}>
+                DONATE
               </Link>
             </nav>
           </motion.div>

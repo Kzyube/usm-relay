@@ -23,10 +23,12 @@ export default function TransferDashboard() {
     sendFile 
   } = useWebRTC();
 
+  // Extract room parameter from URL for receiver logic
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const roomParam = searchParams?.get('room');
+
   // Check URL for room code on mount
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const roomParam = params.get('room');
     if (roomParam && !roomId && connectionState === 'DISCONNECTED') {
       joinRoom(roomParam);
       // Wait for files to be pushed to us
@@ -95,7 +97,7 @@ export default function TransferDashboard() {
       <AnimatePresence mode="wait">
         
         {/* STATE 1: IDLE */}
-        {state === "IDLE" && connectionState !== 'WAITING_FOR_PEER' && connectionState !== 'PEER_CONNECTED' && (
+        {state === "IDLE" && !roomParam && connectionState !== 'WAITING_FOR_PEER' && connectionState !== 'PEER_CONNECTED' && (
           <motion.div
             key="idle"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -117,7 +119,7 @@ export default function TransferDashboard() {
               <h2 className={styles.giantText}>Drop Files Here<br/>Or Click to Browse</h2>
               <p className={styles.subText}>Fast, free, and secure peer-to-peer transfer.</p>
               
-              <div style={{ display: 'flex', gap: '2rem', marginTop: '3rem', color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', gap: '1.5rem', marginTop: '2rem', color: 'var(--text-secondary)', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
                   <ShieldCheck size={18} color="var(--accent-secondary)" /> End-to-End Encrypted
                 </div>
@@ -126,6 +128,28 @@ export default function TransferDashboard() {
                 </div>
               </div>
             </label>
+          </motion.div>
+        )}
+
+        {/* RECEIVER LOADING STATE */}
+        {state === "IDLE" && roomParam && connectionState !== 'WAITING_FOR_PEER' && connectionState !== 'PEER_CONNECTED' && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={styles.pairedContainer}
+            style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <div className={styles.spinner} style={{ marginBottom: '1rem' }} />
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--accent-secondary)' }}>
+                Connecting to Sender...
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                Loading file transfer details.
+              </p>
+            </div>
           </motion.div>
         )}
 

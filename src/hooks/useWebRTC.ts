@@ -92,7 +92,7 @@ export function useWebRTC() {
       } else if (ws.current.readyState === WebSocket.CONNECTING) {
         const existingOnOpen = ws.current.onopen;
         ws.current.onopen = (ev) => {
-          if (existingOnOpen) existingOnOpen.call(ws.current, ev);
+          if (existingOnOpen) existingOnOpen.call(ws.current!, ev);
           onOpen();
         };
       }

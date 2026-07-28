@@ -6,99 +6,7 @@ import { XCircle, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react'
 import styles from './WhyRelay.module.css';
 
 const ArchitectureAnimation = () => {
-  return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: '3rem', 
-      width: '100%', 
-      maxWidth: '900px', 
-      margin: '0 auto 4rem auto', 
-      padding: '3rem 2rem', 
-      background: 'rgba(255, 255, 255, 0.02)', 
-      backdropFilter: 'blur(20px)',
-      borderRadius: '24px', 
-      border: '1px solid rgba(255, 255, 255, 0.05)',
-      boxShadow: '0 30px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)'
-    }}>
-      
-      {/* TRADITIONAL WAY */}
-      <div style={{ position: 'relative' }}>
-        <h4 style={{ color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '4px', marginBottom: '2rem', textAlign: 'center', fontWeight: 600 }}>The Traditional Way</h4>
-        
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
-          
-          {/* Nodes */}
-          <div style={{ zIndex: 2, padding: '1.2rem', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontWeight: 500 }}>Your PC</div>
-          
-          {/* SVG Background Path */}
-          <svg style={{ position: 'absolute', top: '50%', left: '10%', width: '80%', height: '100px', overflow: 'visible', transform: 'translateY(-50%)', zIndex: 1 }}>
-            <path d="M 0 50 Q 50% -50 50% 50 T 100% 50" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" strokeDasharray="6 6" />
-            
-            {/* Animated Dot */}
-            <motion.circle 
-              r="6" 
-              fill="#ff3366" 
-              style={{ filter: 'drop-shadow(0 0 10px #ff3366)' }}
-              animate={{ 
-                offsetDistance: ["0%", "100%"]
-              }}
-              transition={{ duration: 4, ease: "linear", repeat: Infinity }}
-            >
-              <animateMotion dur="4s" repeatCount="indefinite" path="M 0 50 Q 50% -50 50% 50 T 100% 50" />
-            </motion.circle>
-          </svg>
-
-          {/* Cloud Server (Center) */}
-          <motion.div 
-            animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 0 rgba(255,51,102,0)', '0 0 40px rgba(255,51,102,0.2)', '0 0 0 rgba(255,51,102,0)'] }}
-            transition={{ duration: 4, repeat: Infinity }}
-            style={{ zIndex: 2, padding: '1.5rem', background: 'rgba(255, 51, 102, 0.05)', border: '1px solid rgba(255, 51, 102, 0.3)', borderRadius: '16px', color: '#ff3366', fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center', backdropFilter: 'blur(10px)' }}
-          >
-            <AlertTriangle size={24} style={{ marginBottom: '0.5rem' }} />
-            <span>Cloud Server</span>
-          </motion.div>
-          
-          <div style={{ zIndex: 2, padding: '1.2rem', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', fontWeight: 500 }}>Friend</div>
-        </div>
-      </div>
-
-      <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)', margin: '1rem 0' }} />
-
-      {/* RELAY WAY */}
-      <div style={{ position: 'relative' }}>
-        <h4 style={{ color: '#00ffa3', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '4px', marginBottom: '2rem', textAlign: 'center', fontWeight: 700 }}>The Relay Way</h4>
-        
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
-          
-          <div style={{ zIndex: 2, padding: '1.2rem', background: 'rgba(0, 255, 163, 0.05)', border: '1px solid rgba(0, 255, 163, 0.3)', borderRadius: '16px', color: '#00ffa3', fontWeight: 600 }}>Your PC</div>
-          
-          {/* Laser Beam Container */}
-          <div style={{ position: 'absolute', top: '50%', left: '15%', right: '15%', height: '2px', background: 'rgba(255,255,255,0.05)', zIndex: 1 }} />
-          
-          {/* Glowing Laser */}
-          <motion.div 
-            style={{ 
-              position: 'absolute', 
-              top: 'calc(50% - 2px)', 
-              left: '15%', 
-              right: '15%', 
-              height: '4px', 
-              background: 'linear-gradient(90deg, transparent, #00ffa3, transparent)', 
-              zIndex: 3,
-              boxShadow: '0 0 20px #00ffa3',
-              borderRadius: '10px'
-            }}
-            animate={{ backgroundPosition: ['-200% 0', '200% 0'] }}
-            transition={{ duration: 1.5, ease: "linear", repeat: Infinity }}
-          />
-
-          <div style={{ zIndex: 2, padding: '1.2rem', background: 'rgba(0, 255, 163, 0.05)', border: '1px solid rgba(0, 255, 163, 0.3)', borderRadius: '16px', color: '#00ffa3', fontWeight: 600 }}>Friend</div>
-        </div>
-      </div>
-
-    </div>
-  );
+  return null;
 };
 
 export default function WhyRelay() {
@@ -117,7 +25,6 @@ export default function WhyRelay() {
 
   return (
     <section className={styles.section}>
-      <ArchitectureAnimation />
       <motion.div 
         className={styles.header}
         initial={{ opacity: 0, y: -20 }}

@@ -47,6 +47,9 @@ export default function Header() {
                 DONATE
               </Link>
             </nav>
+            <div style={{ position: 'absolute', bottom: '10vh', left: '10vw', color: 'var(--accent-secondary)', fontWeight: 900, fontSize: 'clamp(2rem, 8vw, 6rem)', textTransform: 'uppercase', lineHeight: 0.9, letterSpacing: '-0.02em', opacity: 0.1, pointerEvents: 'none' }}>
+              RELY ON<br/>RELAY.
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

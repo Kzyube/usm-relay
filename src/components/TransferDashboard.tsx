@@ -138,30 +138,6 @@ export default function TransferDashboard() {
   // Automatically start transfer if files are selected, or we are just receiver.
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-      {/* HERO HEADER */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        style={{ textAlign: 'center', marginBottom: '2rem', marginTop: '2rem' }}
-      >
-        <h1 style={{ 
-          fontSize: '4rem', 
-          fontWeight: 900, 
-          letterSpacing: '-0.05em', 
-          lineHeight: 1,
-          background: 'linear-gradient(90deg, #00ffa3, #ff3366)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          marginBottom: '0.5rem'
-        }}>
-          RELY ON RELAY.
-        </h1>
-        <p style={{ color: '#aaa', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto' }}>
-          The fastest, most secure way to send massive files directly between devices. No limits, no servers, no subscriptions.
-        </p>
-      </motion.div>
-
       <div id="transfer-widget" className={styles.wrapper}>
         {error && error !== "Invalid password." && (
         <div style={{ background: '#ff336622', border: '1px solid #ff3366', color: '#ff3366', padding: '1rem', borderRadius: '8px', textAlign: 'center', marginBottom: '1rem', fontWeight: 600 }}>

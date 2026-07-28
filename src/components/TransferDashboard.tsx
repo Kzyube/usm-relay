@@ -25,9 +25,19 @@ export default function TransferDashboard() {
     cancelTransfer
   } = useWebRTC();
 
-  // Extract room parameter from URL for receiver logic
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const roomParam = searchParams?.get('room');
+
+  const completeAudio = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && "Notification" in window) {
+      if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+      }
+    }
+    completeAudio.current = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3'); // Smooth ding
+  }, []);
 
   // Check URL for room code on mount
   useEffect(() => {
@@ -47,6 +57,14 @@ export default function TransferDashboard() {
         // Do nothing, let the other effect trigger the next file
       } else {
         setState("COMPLETE");
+        if (completeAudio.current) {
+           completeAudio.current.play().catch(e => console.log("Audio play blocked by browser:", e));
+        }
+        if (typeof window !== 'undefined' && "Notification" in window && Notification.permission === "granted") {
+           new Notification("RELAY. Transfer Complete!", {
+              body: files.length > 0 ? "Your files have been successfully sent." : "Your files have been successfully downloaded."
+           });
+        }
       }
     } else if (connectionState === 'PEER_CONNECTED' && state === 'TRANSFERRING') {
       // Transfer was cancelled, reset state appropriately
@@ -292,6 +310,12 @@ export default function TransferDashboard() {
                 </div>
               )}
             </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#00ffa3', fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem', marginTop: '1rem' }}>
+              <div>{progress?.speed && progress.speed !== "0.00" ? `${progress.speed} MB/s` : 'Calculating...'}</div>
+              <div>{progress?.eta ? `${progress.eta}s remaining` : ''}</div>
+            </div>
+
             <div className={styles.progressBarContainer}>
               <div className={styles.progressBar} style={{ width: `${progress?.progress || 0}%` }} />
               <div className={styles.progressText}>{progress?.progress || 0}%</div>

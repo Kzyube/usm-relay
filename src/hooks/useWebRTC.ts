@@ -17,6 +17,8 @@ export type ConnectionState = 'DISCONNECTED' | 'CONNECTING' | 'WAITING_FOR_PEER'
 interface TransferProgress {
   fileName: string;
   progress: number; // 0 to 100
+  speed?: string; // MB/s string
+  eta?: number; // seconds remaining
 }
 
 interface FileMetadata {
@@ -59,6 +61,13 @@ export function useWebRTC() {
   const receiveBuffer = useRef<ArrayBuffer[]>([]);
   const receivedSize = useRef<number>(0);
   const expectedFile = useRef<FileMetadata | null>(null);
+
+  // Analytics state for receiver
+  const lastSpeedCalcTime = useRef<number>(0);
+  const bytesSinceLastCalc = useRef<number>(0);
+  const currentSpeed = useRef<string>("0.00");
+  const currentEta = useRef<number>(0);
+  const lastProgressUpdate = useRef<number>(0);
 
   const pendingCandidates = useRef<RTCIceCandidateInit[]>([]);
 
@@ -280,7 +289,12 @@ export function useWebRTC() {
               receivedSize.current = 0;
               channel.send(JSON.stringify({ type: 'OFFSET', value: 0 }));
             }
-            setProgress({ fileName: msg.name, progress: 0 });
+            lastSpeedCalcTime.current = Date.now();
+            bytesSinceLastCalc.current = 0;
+            currentSpeed.current = "0.00";
+            currentEta.current = 0;
+            lastProgressUpdate.current = Date.now();
+            setProgress({ fileName: msg.name, progress: 0, speed: "0.00", eta: 0 });
             setConnectionState('TRANSFERRING');
             return;
           }
@@ -290,7 +304,12 @@ export function useWebRTC() {
             expectedFile.current = msg as FileMetadata;
             receiveBuffer.current = [];
             receivedSize.current = 0;
-            setProgress({ fileName: msg.name, progress: 0 });
+            lastSpeedCalcTime.current = Date.now();
+            bytesSinceLastCalc.current = 0;
+            currentSpeed.current = "0.00";
+            currentEta.current = 0;
+            lastProgressUpdate.current = Date.now();
+            setProgress({ fileName: msg.name, progress: 0, speed: "0.00", eta: 0 });
             setConnectionState('TRANSFERRING');
             channel.send(JSON.stringify({ type: 'OFFSET', value: 0 }));
           }
@@ -300,14 +319,36 @@ export function useWebRTC() {
       } else {
         receiveBuffer.current.push(event.data);
         receivedSize.current += event.data.byteLength;
+        bytesSinceLastCalc.current += event.data.byteLength;
 
         if (expectedFile.current) {
-          const percent = Math.floor((receivedSize.current / expectedFile.current.size) * 100);
-          setProgress({ fileName: expectedFile.current.name, progress: percent });
+          const now = Date.now();
+          
+          if (now - lastSpeedCalcTime.current >= 500) {
+             const seconds = (now - lastSpeedCalcTime.current) / 1000;
+             const speedBps = bytesSinceLastCalc.current / seconds;
+             currentSpeed.current = (speedBps / (1024 * 1024)).toFixed(2);
+             const remainingBytes = expectedFile.current.size - receivedSize.current;
+             currentEta.current = speedBps > 0 ? Math.ceil(remainingBytes / speedBps) : 0;
+             
+             lastSpeedCalcTime.current = now;
+             bytesSinceLastCalc.current = 0;
+          }
+
+          if (now - lastProgressUpdate.current > 100 || receivedSize.current === expectedFile.current.size) {
+             const percent = Math.floor((receivedSize.current / expectedFile.current.size) * 100);
+             setProgress({ 
+               fileName: expectedFile.current.name, 
+               progress: percent,
+               speed: currentSpeed.current,
+               eta: currentEta.current
+             });
+             lastProgressUpdate.current = now;
+          }
 
           if (receivedSize.current === expectedFile.current.size) {
-            setConnectionState('COMPLETE');
-            downloadFile(receiveBuffer.current, expectedFile.current);
+             setConnectionState('COMPLETE');
+             downloadFile(receiveBuffer.current, expectedFile.current);
           }
         }
       }
@@ -389,7 +430,11 @@ export function useWebRTC() {
       });
 
       let currentOffset = offset;
-      let lastProgressUpdate = 0;
+      let lastProgressUpdate = Date.now();
+      let lastSpeedCalcTime = Date.now();
+      let bytesSinceLastCalc = 0;
+      let currentSpeed = "0.00";
+      let currentEta = 0;
       
       while (currentOffset < file.size) {
         if (isCancelled.current) throw new Error("CANCELLED");
@@ -413,11 +458,29 @@ export function useWebRTC() {
         if (!dataChannel.current || dataChannel.current.readyState !== 'open') break;
         dataChannel.current.send(buffer);
         currentOffset += buffer.byteLength;
+        bytesSinceLastCalc += buffer.byteLength;
         
         const now = Date.now();
+        
+        if (now - lastSpeedCalcTime >= 500) {
+           const seconds = (now - lastSpeedCalcTime) / 1000;
+           const speedBps = bytesSinceLastCalc / seconds;
+           currentSpeed = (speedBps / (1024 * 1024)).toFixed(2);
+           const remainingBytes = file.size - currentOffset;
+           currentEta = speedBps > 0 ? Math.ceil(remainingBytes / speedBps) : 0;
+           
+           lastSpeedCalcTime = now;
+           bytesSinceLastCalc = 0;
+        }
+
         if (now - lastProgressUpdate > 100 || currentOffset >= file.size) {
           const percent = Math.floor((currentOffset / file.size) * 100);
-          setProgress({ fileName: file.name, progress: percent });
+          setProgress({ 
+            fileName: file.name, 
+            progress: percent,
+            speed: currentSpeed,
+            eta: currentEta
+          });
           lastProgressUpdate = now;
         }
       }

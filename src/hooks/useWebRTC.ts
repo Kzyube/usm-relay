@@ -11,7 +11,7 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL ||
     ? `ws://${window.location.hostname}:8080` 
     : 'wss://dry-tundra-73460-088c768155ac.herokuapp.com');
 const SEND_CHUNK_SIZE = 64 * 1024; // 64 KB is optimal for SCTP
-const READ_BLOCK_SIZE = 4 * 1024 * 1024; // Read 4MB from disk at once
+const READ_BLOCK_SIZE = 2 * 1024 * 1024; // Read 2MB from disk at once
 
 export type ConnectionState = 'DISCONNECTED' | 'CONNECTING' | 'WAITING_FOR_PEER' | 'PEER_CONNECTED' | 'WAITING_TO_ACCEPT' | 'TRANSFERRING' | 'COMPLETE' | 'ERROR';
 
@@ -265,7 +265,7 @@ export function useWebRTC() {
   const setupDataChannel = (channel: RTCDataChannel) => {
     dataChannel.current = channel;
     channel.binaryType = 'arraybuffer';
-    channel.bufferedAmountLowThreshold = 8 * 1024 * 1024; // 8 MB backpressure threshold
+    channel.bufferedAmountLowThreshold = 256 * 1024; // 256 KB backpressure threshold
 
     channel.onopen = () => {
       setConnectionState('PEER_CONNECTED');
@@ -490,7 +490,7 @@ export function useWebRTC() {
           if (isCancelled.current) throw new Error("CANCELLED");
           if (!dataChannel.current || dataChannel.current.readyState !== 'open') break;
           
-          if (dataChannel.current.bufferedAmount > 16 * 1024 * 1024) {
+          if (dataChannel.current.bufferedAmount > 1024 * 1024) {
             await new Promise<void>(resolve => {
               if (!dataChannel.current) { resolve(); return; }
               dataChannel.current.onbufferedamountlow = () => {

@@ -15,9 +15,9 @@ export default function Header() {
   return (
     <>
       <header className={styles.header}>
-        <Link href="/" className={styles.logo}>
+        <a href="/" className={styles.logo}>
           RELAY.
-        </Link>
+        </a>
         
         <button 
           className={`${styles.menuBtn} ${menuOpen ? styles.isOpen : ''}`} 

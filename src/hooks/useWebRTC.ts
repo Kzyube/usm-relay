@@ -38,6 +38,16 @@ export function useWebRTC() {
   const targetPeerId = useRef<string | null>(null);
   const roomIdRef = useRef<string | null>(null);
   const isInitiator = useRef<boolean>(false);
+  const isCancelled = useRef<boolean>(false);
+
+  const cancelTransfer = useCallback(() => {
+    isCancelled.current = true;
+    if (dataChannel.current && dataChannel.current.readyState === 'open') {
+      dataChannel.current.send(JSON.stringify({ type: 'CANCEL' }));
+    }
+    setConnectionState('PEER_CONNECTED');
+    setProgress(null);
+  }, []);
 
   // Wrapper to keep both state and ref in sync
   const setRoomId = useCallback((id: string | null) => {
@@ -250,12 +260,43 @@ export function useWebRTC() {
 
     channel.onmessage = (event) => {
       if (typeof event.data === 'string') {
-        const metadata = JSON.parse(event.data);
-        expectedFile.current = metadata;
-        receiveBuffer.current = [];
-        receivedSize.current = 0;
-        setProgress({ fileName: metadata.name, progress: 0 });
-        setConnectionState('TRANSFERRING');
+        try {
+          const msg = JSON.parse(event.data);
+          
+          if (msg.type === 'CANCEL') {
+            setConnectionState('PEER_CONNECTED');
+            setProgress(null);
+            receiveBuffer.current = [];
+            receivedSize.current = 0;
+            return;
+          }
+          
+          if (msg.type === 'METADATA') {
+            if (expectedFile.current && expectedFile.current.name === msg.name && expectedFile.current.size === msg.size) {
+              channel.send(JSON.stringify({ type: 'OFFSET', value: receivedSize.current }));
+            } else {
+              expectedFile.current = msg as FileMetadata;
+              receiveBuffer.current = [];
+              receivedSize.current = 0;
+              channel.send(JSON.stringify({ type: 'OFFSET', value: 0 }));
+            }
+            setProgress({ fileName: msg.name, progress: 0 });
+            setConnectionState('TRANSFERRING');
+            return;
+          }
+          
+          // Legacy check
+          if (msg.name && !msg.type) {
+            expectedFile.current = msg as FileMetadata;
+            receiveBuffer.current = [];
+            receivedSize.current = 0;
+            setProgress({ fileName: msg.name, progress: 0 });
+            setConnectionState('TRANSFERRING');
+            channel.send(JSON.stringify({ type: 'OFFSET', value: 0 }));
+          }
+        } catch (e) {
+          console.error("Error parsing data channel string message", e);
+        }
       } else {
         receiveBuffer.current.push(event.data);
         receivedSize.current += event.data.byteLength;
@@ -310,26 +351,50 @@ export function useWebRTC() {
       return;
     }
 
+    isCancelled.current = false;
     setConnectionState('TRANSFERRING');
     setProgress({ fileName: file.name, progress: 0 });
 
-    const metadata: FileMetadata = {
+    const metadata = {
+      type: 'METADATA',
       name: file.name,
       size: file.size,
-      type: file.type
+      fileType: file.type
     };
 
     // Send metadata first
     dataChannel.current.send(JSON.stringify(metadata));
 
     try {
-      let offset = 0;
+      const offset = await new Promise<number>((resolve, reject) => {
+        const handler = (e: MessageEvent) => {
+          if (typeof e.data === 'string') {
+            try {
+              const msg = JSON.parse(e.data);
+              if (msg.type === 'OFFSET') {
+                dataChannel.current!.removeEventListener('message', handler);
+                resolve(msg.value);
+              } else if (msg.type === 'CANCEL') {
+                dataChannel.current!.removeEventListener('message', handler);
+                reject(new Error("CANCELLED"));
+              }
+            } catch {}
+          }
+        };
+        dataChannel.current!.addEventListener('message', handler);
+        setTimeout(() => {
+           dataChannel.current?.removeEventListener('message', handler);
+           resolve(0);
+        }, 3000);
+      });
+
+      let currentOffset = offset;
       let lastProgressUpdate = 0;
       
-      while (offset < file.size) {
+      while (currentOffset < file.size) {
+        if (isCancelled.current) throw new Error("CANCELLED");
         if (!dataChannel.current || dataChannel.current.readyState !== 'open') break;
         
-        // Robust Backpressure: pause pushing if WebRTC internal buffer exceeds 2MB
         if (dataChannel.current.bufferedAmount > 2 * 1024 * 1024) {
           await new Promise<void>(resolve => {
             if (!dataChannel.current) { resolve(); return; }
@@ -340,28 +405,34 @@ export function useWebRTC() {
           });
         }
         
-        const slice = file.slice(offset, offset + CHUNK_SIZE);
-        const buffer = await slice.arrayBuffer(); // Modern, non-blocking disk read
+        if (isCancelled.current) throw new Error("CANCELLED");
+
+        const slice = file.slice(currentOffset, currentOffset + CHUNK_SIZE);
+        const buffer = await slice.arrayBuffer(); 
         
         if (!dataChannel.current || dataChannel.current.readyState !== 'open') break;
         dataChannel.current.send(buffer);
-        offset += buffer.byteLength;
+        currentOffset += buffer.byteLength;
         
-        // UI throttling: only update React state every 100ms or at completion to prevent render lag
         const now = Date.now();
-        if (now - lastProgressUpdate > 100 || offset >= file.size) {
-          const percent = Math.floor((offset / file.size) * 100);
+        if (now - lastProgressUpdate > 100 || currentOffset >= file.size) {
+          const percent = Math.floor((currentOffset / file.size) * 100);
           setProgress({ fileName: file.name, progress: percent });
           lastProgressUpdate = now;
         }
       }
       
-      if (offset >= file.size) {
+      if (currentOffset >= file.size && !isCancelled.current) {
         setConnectionState('COMPLETE');
       }
-    } catch (err) {
-      console.error("Transfer error:", err);
-      setError("File transfer failed");
+    } catch (err: any) {
+      if (err.message === "CANCELLED") {
+        setConnectionState('PEER_CONNECTED');
+        setProgress(null);
+      } else {
+        console.error("Transfer error:", err);
+        setError("File transfer failed");
+      }
     }
   }, []);
 
@@ -402,6 +473,7 @@ export function useWebRTC() {
     progress,
     createRoom,
     joinRoom,
-    sendFile
+    sendFile,
+    cancelTransfer
   };
 }

@@ -21,7 +21,8 @@ export default function TransferDashboard() {
     progress, 
     createRoom, 
     joinRoom, 
-    sendFile 
+    sendFile,
+    cancelTransfer
   } = useWebRTC();
 
   // Extract room parameter from URL for receiver logic
@@ -47,8 +48,11 @@ export default function TransferDashboard() {
       } else {
         setState("COMPLETE");
       }
+    } else if (connectionState === 'PEER_CONNECTED' && state === 'TRANSFERRING') {
+      // Transfer was cancelled, reset state appropriately
+      setState(files.length > 0 ? "FILE_PAIRED" : "IDLE");
     }
-  }, [connectionState, files.length, currentFileIndex]);
+  }, [connectionState, files.length, currentFileIndex, state]);
 
   // Trigger send immediately when peer connects if we are the sender
   useEffect(() => {
@@ -179,6 +183,27 @@ export default function TransferDashboard() {
           </motion.div>
         )}
 
+        {/* RECEIVER CONNECTED (WAITING FOR SENDER) */}
+        {state === "IDLE" && roomParam && connectionState === 'PEER_CONNECTED' && (
+          <motion.div
+            key="receiver_connected"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={styles.pairedContainer}
+            style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <h2 style={{ fontSize: '2rem', fontWeight: 800, textTransform: 'uppercase', color: '#00ffa3' }}>
+                CONNECTED!
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', marginTop: '1rem', fontSize: '1.2rem' }}>
+                Waiting for sender to start transfer...
+              </p>
+            </div>
+          </motion.div>
+        )}
+
         {/* STATE 2: PAIRED (Sender Waiting) */}
         {state === "FILE_PAIRED" && connectionState !== 'TRANSFERRING' && (
           <motion.div 
@@ -270,6 +295,16 @@ export default function TransferDashboard() {
             <div className={styles.progressBarContainer}>
               <div className={styles.progressBar} style={{ width: `${progress?.progress || 0}%` }} />
               <div className={styles.progressText}>{progress?.progress || 0}%</div>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+              <button 
+                onClick={cancelTransfer}
+                className={styles.secondaryBtn} 
+                style={{ width: 'auto', padding: '1rem 2rem', color: '#ff3366', borderColor: '#ff3366', boxShadow: '4px 4px 0 #ff3366' }}
+              >
+                CANCEL TRANSFER
+              </button>
             </div>
           </motion.div>
         )}

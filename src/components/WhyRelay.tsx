@@ -27,9 +27,9 @@ export default function WhyRelay() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
       >
-        <h2 className={styles.title}>Why We Built Relay</h2>
+        <h2 className={styles.title}>Why we built Relay</h2>
         <p className={styles.subtitle}>
-          File sharing is broken. We wanted a simple, free way to send big files instantly.
+          Because uploading a 5GB video to Google Drive just to send it to the person sitting next to you is ridiculous. 
         </p>
       </motion.div>
 
@@ -44,20 +44,20 @@ export default function WhyRelay() {
         <motion.div variants={itemVariants} className={styles.legacyCard}>
           <div className={styles.cardHeader}>
             <AlertTriangle className={styles.legacyIcon} size={32} />
-            <h3>The Old Way (Cloud Apps)</h3>
+            <h3>The Old Way (Google Drive, Dropbox)</h3>
           </div>
           <ul className={styles.list}>
             <li>
               <XCircle size={20} className={styles.xIcon} />
-              <span><strong>File Size Limits:</strong> Most apps won't let you send files larger than 2GB for free.</span>
+              <span><strong>The "Storage Full" Trap:</strong> You run out of space, and suddenly you're forced to pay a $10/month subscription just to send one file.</span>
             </li>
             <li>
               <XCircle size={20} className={styles.xIcon} />
-              <span><strong>It takes twice as long:</strong> You have to upload it to their servers, and then your friend has to download it.</span>
+              <span><strong>Double the waiting time:</strong> You have to wait 20 minutes to upload the file to their servers, and your friend has to wait 20 minutes to download it. Why?</span>
             </li>
             <li>
               <XCircle size={20} className={styles.xIcon} />
-              <span><strong>Privacy Risks:</strong> Your files sit on someone else's computer. They can look at it or lose it.</span>
+              <span><strong>Privacy nightmare:</strong> Your private files sit on a massive corporate server forever, being scanned by algorithms.</span>
             </li>
           </ul>
         </motion.div>
@@ -66,20 +66,20 @@ export default function WhyRelay() {
         <motion.div variants={itemVariants} className={styles.relayCard}>
           <div className={styles.cardHeader}>
             <ShieldCheck className={styles.relayIcon} size={32} />
-            <h3>The Relay Way (Direct)</h3>
+            <h3>The Relay Way (Direct P2P)</h3>
           </div>
           <ul className={styles.list}>
             <li>
               <CheckCircle2 size={20} className={styles.checkIcon} />
-              <span><strong>Send Anything:</strong> 1MB or 1,000GB? It doesn't matter. We don't care how big your file is.</span>
+              <span><strong>Send Absolutely Anything:</strong> A 1MB photo or a 500GB 8K video project? We literally don't care. No limits. No subscriptions.</span>
             </li>
             <li>
               <CheckCircle2 size={20} className={styles.checkIcon} />
-              <span><strong>Lightning Fast:</strong> We connect your computer directly to your friend's computer. It's the fastest way possible.</span>
+              <span><strong>Lightning Fast:</strong> We punch a hole through the internet and connect your computer directly to your friend's. It streams instantly.</span>
             </li>
             <li>
               <CheckCircle2 size={20} className={styles.checkIcon} />
-              <span><strong>Super Safe:</strong> Your files never touch our servers. They are locked safely and go straight to your friend.</span>
+              <span><strong>Military Grade Security:</strong> Your files never touch our servers. We use WebRTC encryption to lock your data safely in transit.</span>
             </li>
           </ul>
         </motion.div>
@@ -93,9 +93,9 @@ export default function WhyRelay() {
         transition={{ delay: 0.4 }}
       >
         <div className={styles.noCatchBox}>
-          <h2 className={styles.noCatchTitle}>Wait, what's the catch?</h2>
+          <h2 className={styles.noCatchTitle}>Wait, so what's the catch?</h2>
           <p className={styles.noCatchDesc}>
-            There is no catch! How can we give you unlimited file sharing for free? Simple: <strong>We don't store your files.</strong> Other websites charge you money because they have to pay for huge hard drives to store your uploads. Relay just creates a direct tunnel between you and your friend. Since we don't store anything, our costs are practically zero. You get a fast, free tool, and we don't go broke!
+            There is none. How can we give you unlimited file sharing for free? Simple: <strong>We don't store your files.</strong> Other websites charge you money because they have to buy massive server farms to store your uploads. Relay just creates a direct encrypted tunnel between you and your friend. Since we don't store anything, our server costs are practically zero. You get an incredibly fast tool, and we don't go bankrupt. Win-win.
           </p>
         </div>
       </motion.div>

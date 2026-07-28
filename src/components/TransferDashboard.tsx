@@ -168,8 +168,8 @@ export default function TransferDashboard() {
             />
             <label htmlFor="fileInput" className={styles.giantDropZone}>
               <UploadCloud size={64} style={{ color: 'var(--accent-primary)', marginBottom: '1.5rem' }} />
-              <h2 className={styles.giantText}>Drop Files Here<br/>Or Click to Browse</h2>
-              <p className={styles.subText}>Fast, free, and secure peer-to-peer transfer.</p>
+              <h2 className={styles.giantText}>Rely on Relay.</h2>
+              <p className={styles.subText} style={{ marginTop: '0.5rem' }}>Drop your files here to start. Secure, unlimited, peer-to-peer.</p>
               
               <div style={{ display: 'flex', gap: '1.5rem', marginTop: '2rem', color: 'var(--text-secondary)', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
@@ -245,13 +245,15 @@ export default function TransferDashboard() {
               onChange={e => setReceiverPassword(e.target.value)}
               style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid #333', background: '#111', color: 'white', marginBottom: '1rem' }}
             />
-            <button 
+            <motion.button 
+              whileHover={{ scale: 1.05 }} 
+              whileTap={{ scale: 0.95 }}
               onClick={() => { joinRoom(roomParam!, receiverPassword); }}
               className={styles.brutalBtn} 
               style={{ width: '100%' }}
             >
               JOIN SECURELY
-            </button>
+            </motion.button>
           </motion.div>
         )}
 
@@ -315,12 +317,24 @@ export default function TransferDashboard() {
                   style={{ display: 'none' }}
                   onChange={handleFileSelect} 
                 />
-                <label htmlFor="addMoreFiles" className={styles.secondaryBtn} style={{ flex: 1, cursor: 'pointer', textAlign: 'center' }}>
+                <motion.label 
+                  whileHover={{ scale: 1.05 }} 
+                  whileTap={{ scale: 0.95 }}
+                  htmlFor="addMoreFiles" 
+                  className={styles.secondaryBtn} 
+                  style={{ flex: 1, cursor: 'pointer', textAlign: 'center' }}
+                >
                   ADD MORE
-                </label>
-                <button onClick={handleShareClick} className={styles.brutalBtn} style={{ flex: 2 }}>
+                </motion.label>
+                <motion.button 
+                  whileHover={{ scale: 1.02 }} 
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleShareClick} 
+                  className={styles.brutalBtn} 
+                  style={{ flex: 2 }}
+                >
                   {connectionState === 'CONNECTING' ? 'CONNECTING...' : 'SHARE FILES'}
-                </button>
+                </motion.button>
               </div>
             )}
 
@@ -340,9 +354,15 @@ export default function TransferDashboard() {
                     value={shareLink} 
                     style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: 'rgba(255,255,255,0.1)', color: 'white', width: '250px' }}
                   />
-                  <button onClick={copyLink} className={styles.secondaryBtn} style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }} 
+                    whileTap={{ scale: 0.95 }}
+                    onClick={copyLink} 
+                    className={styles.secondaryBtn} 
+                    style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  >
                     <LinkIcon size={16} /> Copy
-                  </button>
+                  </motion.button>
                 </div>
                 <p style={{ marginTop: '1rem', color: '#00ffa3' }}>
                   {connectionState === 'WAITING_FOR_PEER' ? 'Waiting for receiver to join...' : 'Connecting...'}
@@ -381,13 +401,15 @@ export default function TransferDashboard() {
             </div>
             
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
-              <button 
+              <motion.button 
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }}
                 onClick={cancelTransfer}
                 className={styles.secondaryBtn} 
                 style={{ width: 'auto', padding: '1rem 2rem', color: '#ff3366', borderColor: '#ff3366', boxShadow: '4px 4px 0 #ff3366' }}
               >
                 CANCEL TRANSFER
-              </button>
+              </motion.button>
             </div>
           </motion.div>
         )}
@@ -404,9 +426,14 @@ export default function TransferDashboard() {
             <p style={{ color: '#aaa', marginBottom: '2rem' }}>
               Transfer successful. {files.length > 0 ? `${files.length} file(s) sent.` : 'Files downloaded automatically.'}
             </p>
-            <button onClick={() => { window.location.href = '/'; }} className={styles.resetBtn}>
+            <motion.button 
+              whileHover={{ scale: 1.05 }} 
+              whileTap={{ scale: 0.95 }}
+              onClick={() => { window.location.href = '/'; }} 
+              className={styles.resetBtn}
+            >
               AGAIN.
-            </button>
+            </motion.button>
           </motion.div>
         )}
         

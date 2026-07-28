@@ -37,7 +37,7 @@ export class HeartbeatSystem {
     const peers = this.peerManager.getAll();
 
     // 1. Identify stale peers
-    const stalePeers = this.peerManager.findStalePeers(config.PING_TIMEOUT_MS);
+    const stalePeers = this.peerManager.findStalePeers(config.PING_INTERVAL_MS + config.PING_TIMEOUT_MS);
     
     if (stalePeers.length > 0) {
       logger.warn({ count: stalePeers.length }, 'Disconnecting stale peers');

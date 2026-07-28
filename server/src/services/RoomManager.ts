@@ -125,7 +125,7 @@ export class RoomManager {
     const now = Date.now();
     let removed = 0;
     for (const [roomId, room] of this.rooms) {
-      if (room.expiresAt < now || room.peers.size === 0) {
+      if (room.expiresAt < now) {
         this.rooms.delete(roomId);
         removed++;
       }

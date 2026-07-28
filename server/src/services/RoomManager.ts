@@ -68,7 +68,10 @@ export class RoomManager {
     logger.info({ roomId, peerId, remaining: room.peers.size }, 'Peer left room');
 
     if (room.peers.size === 0) {
-      this.destroyRoom(roomId);
+      // Do not destroy the room immediately! 
+      // This allows mobile users (like iOS Safari) to reconnect if their 
+      // app goes to the background temporarily.
+      // The room will be cleaned up automatically when it expires.
       return null;
     }
 

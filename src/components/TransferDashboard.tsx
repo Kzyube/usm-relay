@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Link as LinkIcon, UploadCloud, ShieldCheck, Zap } from "lucide-react";
+import { X, Link as LinkIcon, UploadCloud, ShieldCheck, Zap, Download } from "lucide-react";
 import QRCode from "react-qr-code";
 import styles from './TransferDashboard.module.css';
 import { useWebRTC } from "../hooks/useWebRTC";
 
-type TransferState = "IDLE" | "FILE_PAIRED" | "TRANSFERRING" | "COMPLETE";
+type TransferState = "IDLE" | "FILE_PAIRED" | "WAITING_TO_ACCEPT" | "TRANSFERRING" | "COMPLETE";
 
 export default function TransferDashboard() {
   const [state, setState] = useState<TransferState>("IDLE");
@@ -27,6 +27,7 @@ export default function TransferDashboard() {
     createRoom, 
     joinRoom, 
     sendFile,
+    acceptTransfer,
     cancelTransfer
   } = useWebRTC();
 
@@ -61,7 +62,9 @@ export default function TransferDashboard() {
 
   // Update UI state based on WebRTC connection state
   useEffect(() => {
-    if (connectionState === 'TRANSFERRING') {
+    if (connectionState === 'WAITING_TO_ACCEPT') {
+      setState("WAITING_TO_ACCEPT");
+    } else if (connectionState === 'TRANSFERRING') {
       setState("TRANSFERRING");
     } else if (connectionState === 'COMPLETE') {
       // If we are sender and have more files, do NOT set COMPLETE state yet
@@ -407,6 +410,40 @@ export default function TransferDashboard() {
                 </p>
               </div>
             )}
+          </motion.div>
+        )}
+
+        {/* STATE: WAITING TO ACCEPT (Receiver) */}
+        {state === "WAITING_TO_ACCEPT" && (
+          <motion.div 
+            key="waiting_to_accept" 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className={styles.pairedContainer}
+            style={{ textAlign: 'center' }}
+          >
+            <div style={{ background: '#00ffa322', color: '#00ffa3', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+              <Download size={32} />
+            </div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, textTransform: 'uppercase', color: '#00ffa3', marginBottom: '1rem' }}>
+              Incoming File
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              {progress?.fileName}
+            </p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '2rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              Please accept the file. On supported browsers, this streams directly to your disk for blazing fast speeds!
+            </p>
+            <motion.button 
+              whileHover={{ scale: 1.05 }} 
+              whileTap={{ scale: 0.95 }}
+              onClick={acceptTransfer}
+              className={styles.brutalBtn} 
+              style={{ width: '100%', background: '#00ffa3', color: '#000', borderColor: '#00ffa3' }}
+            >
+              ACCEPT & DOWNLOAD
+            </motion.button>
           </motion.div>
         )}
 

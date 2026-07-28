@@ -12,7 +12,7 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL ||
     : 'wss://dry-tundra-73460-088c768155ac.herokuapp.com');
 const CHUNK_SIZE = 64 * 1024; // 64 KB
 
-export type ConnectionState = 'DISCONNECTED' | 'CONNECTING' | 'WAITING_FOR_PEER' | 'PEER_CONNECTED' | 'TRANSFERRING' | 'COMPLETE' | 'ERROR';
+export type ConnectionState = 'DISCONNECTED' | 'CONNECTING' | 'WAITING_FOR_PEER' | 'PEER_CONNECTED' | 'WAITING_TO_ACCEPT' | 'TRANSFERRING' | 'COMPLETE' | 'ERROR';
 
 interface TransferProgress {
   fileName: string;
@@ -33,6 +33,9 @@ export function useWebRTC() {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<TransferProgress | null>(null);
 
+  const fileHandle = useRef<any>(null);
+  const writableStream = useRef<any>(null);
+
   const ws = useRef<WebSocket | null>(null);
   const pc = useRef<RTCPeerConnection | null>(null);
   const dataChannel = useRef<RTCDataChannel | null>(null);
@@ -49,6 +52,10 @@ export function useWebRTC() {
     }
     setConnectionState('PEER_CONNECTED');
     setProgress(null);
+    if (writableStream.current) {
+       try { writableStream.current.abort(); } catch(e) {}
+       writableStream.current = null;
+    }
   }, []);
 
   // Wrapper to keep both state and ref in sync
@@ -272,7 +279,7 @@ export function useWebRTC() {
   const setupDataChannel = (channel: RTCDataChannel) => {
     dataChannel.current = channel;
     channel.binaryType = 'arraybuffer';
-    channel.bufferedAmountLowThreshold = 1024 * 1024; // 1 MB backpressure threshold
+    channel.bufferedAmountLowThreshold = 4 * 1024 * 1024; // 4 MB backpressure threshold
 
     channel.onopen = () => {
       setConnectionState('PEER_CONNECTED');
@@ -292,21 +299,17 @@ export function useWebRTC() {
           }
           
           if (msg.type === 'METADATA') {
-            if (expectedFile.current && expectedFile.current.name === msg.name && expectedFile.current.size === msg.size) {
-              channel.send(JSON.stringify({ type: 'OFFSET', value: receivedSize.current }));
-            } else {
-              expectedFile.current = msg as FileMetadata;
-              receiveBuffer.current = [];
-              receivedSize.current = 0;
-              channel.send(JSON.stringify({ type: 'OFFSET', value: 0 }));
-            }
+            expectedFile.current = msg as FileMetadata;
+            receiveBuffer.current = [];
+            receivedSize.current = 0;
+            
             lastSpeedCalcTime.current = Date.now();
             bytesSinceLastCalc.current = 0;
             currentSpeed.current = "0.00";
             currentEta.current = 0;
             lastProgressUpdate.current = Date.now();
             setProgress({ fileName: msg.name, progress: 0, speed: "0.00", eta: 0 });
-            setConnectionState('TRANSFERRING');
+            setConnectionState('WAITING_TO_ACCEPT');
             return;
           }
           
@@ -328,9 +331,14 @@ export function useWebRTC() {
           console.error("Error parsing data channel string message", e);
         }
       } else {
-        receiveBuffer.current.push(event.data);
         receivedSize.current += event.data.byteLength;
         bytesSinceLastCalc.current += event.data.byteLength;
+
+        if (writableStream.current) {
+          writableStream.current.write(event.data).catch((e: any) => console.error("Write error:", e));
+        } else {
+          receiveBuffer.current.push(event.data);
+        }
 
         if (expectedFile.current) {
           const now = Date.now();
@@ -359,13 +367,43 @@ export function useWebRTC() {
 
           if (receivedSize.current === expectedFile.current.size) {
              setConnectionState('COMPLETE');
-             downloadFile(receiveBuffer.current, expectedFile.current);
              sendWsMessage('TRANSFER_COMPLETE');
+             if (writableStream.current) {
+                writableStream.current.close().catch((e: any) => console.error("Close err:", e)).then(() => {
+                   writableStream.current = null;
+                   fileHandle.current = null;
+                });
+             } else {
+                downloadFile(receiveBuffer.current, expectedFile.current);
+             }
           }
         }
       }
     };
   };
+
+  const acceptTransfer = useCallback(async () => {
+    if (!expectedFile.current || !dataChannel.current) return;
+    
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: expectedFile.current.name
+        });
+        fileHandle.current = handle;
+        writableStream.current = await handle.createWritable();
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+           cancelTransfer();
+           return;
+        }
+        console.warn("FileSystem API failed, falling back to RAM", err);
+      }
+    }
+    
+    setConnectionState('TRANSFERRING');
+    dataChannel.current.send(JSON.stringify({ type: 'OFFSET', value: 0 }));
+  }, [cancelTransfer]);
 
   const downloadFile = (buffers: ArrayBuffer[], metadata: FileMetadata) => {
     const blob = new Blob(buffers, { type: metadata.type });
@@ -453,7 +491,7 @@ export function useWebRTC() {
         if (isCancelled.current) throw new Error("CANCELLED");
         if (!dataChannel.current || dataChannel.current.readyState !== 'open') break;
         
-        if (dataChannel.current.bufferedAmount > 2 * 1024 * 1024) {
+        if (dataChannel.current.bufferedAmount > 16 * 1024 * 1024) {
           await new Promise<void>(resolve => {
             if (!dataChannel.current) { resolve(); return; }
             dataChannel.current.onbufferedamountlow = () => {
@@ -551,6 +589,7 @@ export function useWebRTC() {
     createRoom,
     joinRoom,
     sendFile,
+    acceptTransfer,
     cancelTransfer
   };
 }
